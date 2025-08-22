@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
+import { ConfigService } from '@nestjs/config';
 
 import { AuthModule } from './auth.module';
 
@@ -9,6 +10,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.useLogger(app.get(Logger)); // Optional: Set up a logger if needed
 
-  await app.listen(process.env.port ?? 3002);
+  const configService = app.get(ConfigService);
+  await app.listen(configService.getOrThrow<number>('PORT'));
 }
-bootstrap();
+void bootstrap();

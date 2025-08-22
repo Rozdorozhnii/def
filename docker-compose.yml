@@ -6,6 +6,8 @@ services:
       target: development
     container_name: api-notes
     command: pnpm run start:dev notes
+    env_file:
+      - ./api/apps/notes/.env
     ports:
       - "3001:3001"
     volumes:
@@ -20,6 +22,8 @@ services:
       target: development
     container_name: api-auth
     command: pnpm run start:dev auth
+    env_file:
+      - ./api/apps/auth/.env
     ports:
       - "3002:3002"
     volumes:
@@ -35,6 +39,15 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: db
 
 volumes:
   mongo_data:

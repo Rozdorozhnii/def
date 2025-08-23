@@ -1,6 +1,6 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-import { UserDocument } from './users/models/user.schema';
+import { UserDocument } from '@app/common';
 
 export interface RequestWithUser extends Request {
   user: UserDocument;

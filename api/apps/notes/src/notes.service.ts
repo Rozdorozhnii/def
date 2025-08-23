@@ -8,11 +8,11 @@ import { NotesRepository } from './notes.repository';
 export class NotesService {
   constructor(private readonly notesRepository: NotesRepository) {}
 
-  create(createNoteDto: CreateNoteDto) {
+  create(createNoteDto: CreateNoteDto, userId: string) {
     return this.notesRepository.create({
       ...createNoteDto,
       timestamp: new Date(),
-      userId: 'defaultUserId', // Replace with actual user ID logic
+      userId,
     });
   }
 

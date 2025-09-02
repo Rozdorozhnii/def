@@ -24,7 +24,7 @@ export class NotesController {
     @Body() createNoteDto: CreateNoteDto,
     @CurrentUser() user: UserDto,
   ) {
-    return this.notesService.create(createNoteDto, user._id);
+    return this.notesService.create(createNoteDto, user);
   }
 
   @Get()
@@ -45,6 +45,6 @@ export class NotesController {
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    return this.notesService.remove(+id);
+    return this.notesService.remove(id);
   }
 }

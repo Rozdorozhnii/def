@@ -5,7 +5,12 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { NotesService } from './notes.service';
 import { NotesController } from './notes.controller';
-import { DatabaseModule, LoggerModule, AUTH_SERVICE } from '@app/common';
+import {
+  DatabaseModule,
+  LoggerModule,
+  AUTH_SERVICE,
+  NOTIFICATIONS_SERVICE,
+} from '@app/common';
 import { NotesRepository } from './notes.repository';
 import { NoteDocument, NoteSchema } from './models/note.schema';
 
@@ -24,6 +29,10 @@ import { NoteDocument, NoteSchema } from './models/note.schema';
       validationSchema: Joi.object({
         MONGODB_URI: Joi.string().required(),
         PORT: Joi.number().required(),
+        AUTH_HOST: Joi.string().required(),
+        AUTH_PORT: Joi.number().required(),
+        NOTIFICATIONS_HOST: Joi.string().required(),
+        NOTIFICATIONS_PORT: Joi.number().required(),
       }),
     }),
     ClientsModule.registerAsync([
@@ -34,6 +43,17 @@ import { NoteDocument, NoteSchema } from './models/note.schema';
           options: {
             host: configService.getOrThrow<string>('AUTH_HOST'),
             port: configService.getOrThrow<number>('AUTH_PORT'),
+          },
+        }),
+        inject: [ConfigService],
+      },
+      {
+        name: NOTIFICATIONS_SERVICE,
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: configService.getOrThrow<string>('NOTIFICATIONS_HOST'),
+            port: configService.getOrThrow<number>('NOTIFICATIONS_PORT'),
           },
         }),
         inject: [ConfigService],

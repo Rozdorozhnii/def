@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcryptjs from 'bcryptjs';
@@ -14,9 +15,16 @@ export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   async validateUserEmail(email: string) {
-    const user = await this.usersRepository.findOne({ email });
-    if (user) {
-      throw new ConflictException('User with this email already exists');
+    try {
+      const user = await this.usersRepository.findOne({ email });
+      if (user) {
+        throw new ConflictException('User with this email already exists');
+      }
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        return;
+      }
+      throw err;
     }
   }
 

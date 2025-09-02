@@ -1,4 +1,24 @@
 services:
+  web:
+    container_name: web
+    image: web
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+    env_file:
+      - ./web/.env
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    restart: always
+    depends_on:
+      - notes
+      - auth
+      - notifications
   notes:
     build:
       context: ./api

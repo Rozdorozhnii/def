@@ -5,13 +5,15 @@ import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 
 import { NotesModule } from './notes.module';
+import { buildCorsOptions } from '@app/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(NotesModule);
+  const configService = app.get(ConfigService);
+  app.enableCors(buildCorsOptions(configService));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.useLogger(app.get(Logger)); // Optional: Set up a logger if needed
   app.use(cookieParser());
-  const configService = app.get(ConfigService);
   await app.listen(configService.getOrThrow<number>('PORT'));
 }
 

@@ -9,6 +9,9 @@ export function Header() {
       <Link href="/about" className="flex items-center gap-3">
         About
       </Link>
+      <Link href="/login" className="flex items-center gap-3">
+        Login
+      </Link>
     </header>
   );
 }

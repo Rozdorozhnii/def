@@ -6,10 +6,12 @@ import * as cookieParser from 'cookie-parser';
 import { Transport } from '@nestjs/microservices';
 
 import { AuthModule } from './auth.module';
+import { buildCorsOptions } from '@app/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AuthModule);
   const configService = app.get(ConfigService);
+  app.enableCors(buildCorsOptions(configService));
   app.connectMicroservice({
     transport: Transport.TCP,
     options: {

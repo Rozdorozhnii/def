@@ -1,13 +1,19 @@
-import axios from "axios";
 import Image from "next/image";
 
 import NotesList from "../../../components/NotesList";
-import { Note } from "@/shared/types";
+import { getBaseUrl } from "@/shared/server/getBaseUrl";
 
 export default async function Home() {
-  const notesUrl = process.env.NOTES_URL;
-  const response = await axios.get<Note[]>(`${notesUrl}/notes`);
-  const notes = response.data;
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/notes`, {
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to load notes");
+  }
+
+  const notes = await response.json();
 
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">

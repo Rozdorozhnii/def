@@ -52,6 +52,17 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
     return this.model.find(filterQuery).lean<TDocument[]>(true);
   }
 
+  async findById(id: Types.ObjectId | string): Promise<TDocument> {
+    const document = await this.model.findById(id).lean<TDocument>(true);
+
+    if (!document) {
+      this.logger.warn('Document was not found with id', id);
+      throw new NotFoundException('Document was not found');
+    }
+
+    return document;
+  }
+
   async findOneAndDelete(
     filterQuery: FilterQuery<TDocument>,
   ): Promise<TDocument> {

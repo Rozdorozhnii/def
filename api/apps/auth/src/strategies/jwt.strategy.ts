@@ -7,24 +7,26 @@ import { Request } from 'express';
 import { UsersService } from '../users/users.service';
 import { TokenPayload } from '../interfaces/token-payload';
 
-interface RequestWithCookies extends Request {
+export interface RequestWithAuthCookies extends Request {
   cookies: {
     Authentication?: string;
+    Refresh?: string;
   };
-  Authentication?: string;
 }
 
-const cookieExtractor = (request: RequestWithCookies): string | null => {
-  if (typeof request.cookies?.Authentication === 'string') {
-    return request.cookies.Authentication;
-  }
-
-  if (typeof request.Authentication === 'string') {
-    return request.Authentication;
-  }
-
-  return null;
+export const accessTokenExtractor = (
+  request: RequestWithAuthCookies,
+): string | null => {
+  return typeof request.cookies?.Authentication === 'string'
+    ? request.cookies.Authentication
+    : null;
 };
+
+export const getCookie = (
+  req: Request,
+  name: 'Authentication' | 'Refresh',
+): string | null =>
+  typeof req.cookies?.[name] === 'string' ? req.cookies[name] : null;
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -33,12 +35,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly usersService: UsersService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
-      secretOrKey: configService.getOrThrow('JWT_SECRET'),
+      jwtFromRequest: ExtractJwt.fromExtractors([accessTokenExtractor]),
+      secretOrKey: configService.getOrThrow('JWT_ACCESS_SECRET'),
     });
   }
 
-  async validate({ userId }: TokenPayload) {
-    return this.usersService.getUser({ _id: userId });
+  async validate(payload: TokenPayload) {
+    return this.usersService.getUser({ _id: payload.userId });
   }
 }

@@ -1,11 +1,21 @@
-import { Controller, Post, Res, UseGuards } from '@nestjs/common';
-import { Response } from 'express';
+import {
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { AuthenticatedUser, CurrentUser, UserDocument } from '@app/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { getCookie, RequestWithAuthCookies } from './strategies/jwt.strategy';
 
 @Controller('auth')
 export class AuthController {
@@ -13,12 +23,52 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(
+  async login(
     @CurrentUser() user: UserDocument,
+    @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    this.authService.login(user, response);
-    response.send(user);
+    const userAgent =
+      typeof req.headers['user-agent'] === 'string'
+        ? req.headers['user-agent']
+        : 'unknown';
+
+    await this.authService.login(user, response, userAgent);
+
+    return {
+      user: {
+        id: user._id,
+        email: user.email,
+      },
+    };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async refresh(
+    @Req() req: RequestWithAuthCookies,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = getCookie(req, 'Refresh');
+
+    if (!refreshToken) {
+      throw new UnauthorizedException();
+    }
+
+    await this.authService.refresh(refreshToken, req, res);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(
+    @Req() req: RequestWithAuthCookies,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = getCookie(req, 'Refresh');
+
+    if (refreshToken) {
+      await this.authService.logout(refreshToken, res);
+    }
   }
 
   @UseGuards(JwtAuthGuard)

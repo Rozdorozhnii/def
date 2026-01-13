@@ -22,12 +22,6 @@ export const accessTokenExtractor = (
     : null;
 };
 
-export const getCookie = (
-  req: Request,
-  name: 'Authentication' | 'Refresh',
-): string | null =>
-  typeof req.cookies?.[name] === 'string' ? req.cookies[name] : null;
-
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(

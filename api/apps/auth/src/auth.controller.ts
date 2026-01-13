@@ -13,9 +13,14 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { AuthenticatedUser, CurrentUser, UserDocument } from '@app/common';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+  getCookie,
+  UserDocument,
+} from '@app/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { getCookie, RequestWithAuthCookies } from './strategies/jwt.strategy';
+import { RequestWithAuthCookies } from './strategies/jwt.strategy';
 
 @Controller('auth')
 export class AuthController {

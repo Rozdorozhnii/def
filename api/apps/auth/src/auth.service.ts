@@ -2,11 +2,17 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 
-import { sha256, UserDocument } from '@app/common';
+import { JwtAccessPayload, sha256, UserDocument } from '@app/common';
 import { TokenPayload } from './interfaces/token-payload';
 import { SessionRepository } from './session.repository';
+import { UsersRepository } from './users/users.repository';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +22,7 @@ export class AuthService {
     private readonly sessionRepository: SessionRepository,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
+    private readonly usersRepository: UsersRepository,
   ) {}
 
   private signAccessToken(payload: TokenPayload) {
@@ -152,5 +159,56 @@ export class AuthService {
 
     res.clearCookie('Authentication');
     res.clearCookie('Refresh');
+  }
+
+  async verifyEmail(token: string, req: Request, res: Response) {
+    const hashed = sha256(token);
+
+    const user = await this.usersRepository.findOne({
+      emailVerificationToken: hashed,
+      emailVerificationExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    if (
+      !user.emailVerificationExpires ||
+      user.emailVerificationExpires < new Date()
+    ) {
+      throw new BadRequestException('Token expired');
+    }
+
+    await this.usersRepository.findandUpdate(
+      { _id: user._id },
+      {
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    );
+
+    await this.login(user, res, req.headers['user-agent'] ?? 'unknown');
+  }
+
+  async authenticate(accessToken: string) {
+    try {
+      const payload = this.jwtService.verify<JwtAccessPayload>(accessToken, {
+        secret: this.configService.getOrThrow('JWT_ACCESS_SECRET'),
+      });
+
+      const user = await this.usersRepository.findOne({
+        _id: payload.userId,
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return user;
+    } catch {
+      throw new UnauthorizedException();
+    }
   }
 }

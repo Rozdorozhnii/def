@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   HttpCode,
   HttpStatus,
@@ -10,17 +11,17 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  ApiBadRequestResponse,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import {
-  AuthenticatedUser,
-  CurrentUser,
-  getCookie,
-  UserDocument,
-} from '@app/common';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser, getCookie, UserDocument } from '@app/common';
 import { RequestWithAuthCookies } from './strategies/jwt.strategy';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -76,9 +77,21 @@ export class AuthController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
   @MessagePattern('authenticate')
-  authenticate(@Payload() data: { user: AuthenticatedUser }) {
-    return data.user;
+  authenticate(@Payload() data: { accessToken: string }) {
+    return this.authService.authenticate(data.accessToken);
+  }
+
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Verify email and auto login' })
+  @ApiResponse({ status: 204, description: 'Email verified' })
+  @ApiBadRequestResponse({ description: 'Invalid or expired token' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async verifyEmail(
+    @Body() verifyEmailDto: VerifyEmailDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.verifyEmail(verifyEmailDto.token, req, res);
   }
 }

@@ -12,13 +12,13 @@ import {
 import { NotesService } from './notes.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-import { CurrentUser, JwtAuthGuard, UserDto } from '@app/common';
+import { CurrentUser, AccessTokenGuard, UserDto } from '@app/common';
 
 @Controller('notes')
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessTokenGuard)
   @Post()
   async create(
     @Body() createNoteDto: CreateNoteDto,
@@ -37,14 +37,18 @@ export class NotesController {
     return this.notesService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessTokenGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateNoteDto: UpdateNoteDto) {
-    return this.notesService.update(id, updateNoteDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateNoteDto: UpdateNoteDto,
+    @CurrentUser() user: UserDto,
+  ) {
+    return this.notesService.update(id, updateNoteDto, user);
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessTokenGuard)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.notesService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() user: UserDto) {
+    return this.notesService.remove(id, user);
   }
 }

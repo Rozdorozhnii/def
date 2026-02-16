@@ -5,6 +5,7 @@ export * from './crypto';
 export * from './database';
 export * from './decorators';
 export * from './dto';
+export * from './guards';
 export * from './interfaces';
 export * from './logger';
 export * from './models';

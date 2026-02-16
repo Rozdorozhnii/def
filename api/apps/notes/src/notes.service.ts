@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ClientGrpcProxy } from '@nestjs/microservices';
+import { ClientProxy } from '@nestjs/microservices';
 
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
@@ -11,7 +11,7 @@ export class NotesService {
   constructor(
     private readonly notesRepository: NotesRepository,
     @Inject(NOTIFICATIONS_SERVICE)
-    private readonly notificationsService: ClientGrpcProxy,
+    private readonly notificationsService: ClientProxy,
   ) {}
 
   create(createNoteDto: CreateNoteDto, { email, _id: userId }: UserDto) {
@@ -37,11 +37,14 @@ export class NotesService {
     return this.notesRepository.findOne({ _id });
   }
 
-  update(_id: string, updateNoteDto: UpdateNoteDto) {
-    return this.notesRepository.findandUpdate({ _id }, { $set: updateNoteDto });
+  update(_id: string, updateNoteDto: UpdateNoteDto, user: UserDto) {
+    return this.notesRepository.findandUpdate(
+      { _id, userId: user._id },
+      { $set: updateNoteDto },
+    );
   }
 
-  remove(_id: string) {
-    return this.notesRepository.findOneAndDelete({ _id });
+  remove(_id: string, user: UserDto) {
+    return this.notesRepository.findOneAndDelete({ _id, userId: user._id });
   }
 }

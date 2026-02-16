@@ -16,6 +16,7 @@ import { LoggerModule } from '@app/common';
         GOOGLE_OAUTH_CLIENT_ID: Joi.string().required(),
         GOOGLE_OAUTH_CLIENT_SECRET: Joi.string().required(),
         GOOGLE_OAUTH_REFRESH_TOKEN: Joi.string().required(),
+        FRONTEND_URL: Joi.string().required(),
       }),
     }),
     LoggerModule,

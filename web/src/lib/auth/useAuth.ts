@@ -1,11 +1,10 @@
 import useSWR, { mutate } from "swr";
-import { NextResponse } from "next/dist/server/web/spec-extension/response";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { credentials: "include" });
 
   if (res.status === 401) {
-    return NextResponse.json({ user: null });
+    return null;
   }
 
   if (!res.ok) {
@@ -19,8 +18,6 @@ export function useAuth() {
   const { data, isLoading } = useSWR("/api/auth/users", fetcher, {
     shouldRetryOnError: false,
     revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    revalidateIfStale: false,
   });
 
   const refreshUser = async () => {

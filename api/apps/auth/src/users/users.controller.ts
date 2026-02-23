@@ -4,6 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
 import { CurrentUser, UserDocument } from '@app/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @Controller('users')
 export class UsersController {
@@ -17,6 +18,6 @@ export class UsersController {
   @Get()
   @UseGuards(JwtAuthGuard)
   getUser(@CurrentUser() user: UserDocument) {
-    return user;
+    return new UserResponseDto(user);
   }
 }

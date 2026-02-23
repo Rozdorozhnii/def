@@ -3,11 +3,13 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useAuth } from "@/lib/auth/useAuth";
+
 type AuthMode = "login" | "register" | "reset";
 
 export default function LoginPage() {
   const router = useRouter();
-
+  const { refreshUser } = useAuth();
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,6 +53,7 @@ export default function LoginPage() {
     if (mode === "reset") {
       setSuccess("Password reset email sent");
     } else {
+      await refreshUser();
       router.push("/");
     }
   };

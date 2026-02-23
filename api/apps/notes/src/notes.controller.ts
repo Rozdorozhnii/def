@@ -18,6 +18,12 @@ import { CurrentUser, AccessTokenGuard, UserDto } from '@app/common';
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
+  //TODO change it to @nestjs/terminus health check in the future
+  @Get('health')
+  health() {
+    return { status: 'ok' };
+  }
+
   @UseGuards(AccessTokenGuard)
   @Post()
   async create(

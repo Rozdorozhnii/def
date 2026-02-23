@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -26,6 +27,12 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  //TODO change it to @nestjs/terminus health check in the future
+  @Get('health')
+  health() {
+    return { status: 'ok' };
+  }
 
   @UseGuards(LocalAuthGuard)
   @Post('login')

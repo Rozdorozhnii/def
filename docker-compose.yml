@@ -16,9 +16,12 @@ services:
       - /app/node_modules
     restart: always
     depends_on:
-      - notes
-      - auth
-      - notifications
+      notes:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      notifications:
+        condition: service_healthy
   notes:
     build:
       context: ./api
@@ -29,7 +32,17 @@ services:
     env_file:
       - ./api/apps/notes/.env
     ports:
-      - "3001:3001"
+      - "${NOTES_PORT}:${NOTES_PORT}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:${NOTES_PORT}/notes/health || exit 1",
+        ]
+      interval: 1m
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     volumes:
       - ./api:/usr/src/app
     depends_on:
@@ -45,7 +58,17 @@ services:
     env_file:
       - ./api/apps/auth/.env
     ports:
-      - "3002:3002"
+      - "${AUTH_PORT}:${AUTH_PORT}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:${AUTH_PORT}/auth/health || exit 1",
+        ]
+      interval: 1m
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     volumes:
       - ./api:/usr/src/app
     depends_on:
@@ -60,6 +83,18 @@ services:
     command: pnpm run start:dev notifications
     env_file:
       - ./api/apps/notifications/.env
+    ports:
+      - "${NOTIFICATIONS_PORT}:${NOTIFICATIONS_PORT}"
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "const c = require('net').createConnection(process.env.TCP_PORT, '0.0.0.0', () => { c.end(); process.exit(0); }); c.on('error', () => process.exit(1));"
+      interval: 1m
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     volumes:
       - ./api:/usr/src/app
     depends_on:

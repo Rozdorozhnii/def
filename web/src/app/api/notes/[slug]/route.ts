@@ -2,20 +2,20 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const res = await fetch(
-    `${process.env.NOTES_URL}/notes/${params.slug}`,
-    {
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-    }
-  );
+  const { slug } = await params;
+  const res = await fetch(`${process.env.NOTES_URL}/notes/${slug}`, {
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
 
   if (!res.ok) {
+    const errorText = await res.text();
+
     return NextResponse.json(
-      { message: "Note not found" },
-      { status: res.status }
+      { message: errorText || "Upstream error" },
+      { status: res.status },
     );
   }
 

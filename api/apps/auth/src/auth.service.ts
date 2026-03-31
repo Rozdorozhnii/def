@@ -129,22 +129,25 @@ export class AuthService {
     }
 
     // ROTATION
-    await this.sessionRepository.revokeBySessionId(session._id);
+    const newSession = await this.sessionRepository.create({
+      userId: new Types.ObjectId(decoded.userId),
+      refreshTokenHash: '',
+      userAgent: req.headers['user-agent'] ?? 'unknown',
+      expiresAt: this.calcRefreshExpiry(),
+    });
 
     const payload: TokenPayload = {
       userId: decoded.userId,
-      sessionId: decoded.sessionId,
+      sessionId: newSession._id.toHexString(),
     };
 
     const newAccess = this.signAccessToken(payload);
     const newRefresh = this.signRefreshToken(payload);
 
-    await this.sessionRepository.create({
-      userId: new Types.ObjectId(payload.userId),
-      refreshTokenHash: sha256(newRefresh),
-      userAgent: req.headers['user-agent'] ?? 'unknown',
-      expiresAt: this.calcRefreshExpiry(),
-    });
+    await this.sessionRepository.updateRefreshHash(
+      new Types.ObjectId(payload.sessionId),
+      sha256(newRefresh),
+    );
 
     this.setAuthCookies(res, newAccess, newRefresh);
   }

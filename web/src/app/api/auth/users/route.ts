@@ -1,16 +1,33 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { serverFetch } from "@/lib/auth/serverFetch";
+
+function getSetCookies(headers: Headers): string[] {
+  const headersWithSetCookie = headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+
+  if (typeof headersWithSetCookie.getSetCookie === "function") {
+    return headersWithSetCookie.getSetCookie();
+  }
+
+  const setCookie = headers.get("set-cookie");
+  return setCookie ? [setCookie] : [];
+}
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const res = await fetch(`${process.env.AUTH_URL}/users`, {
-    headers: {
-      cookie: cookieStore.toString(),
-    },
-  });
+  const res = await serverFetch(`${process.env.AUTH_URL}/users`);
 
-  return new NextResponse(res.body, {
-    status: res.status,
-    headers: res.headers,
-  });
+  if (res.status === 401) {
+    return NextResponse.json({ user: null }, { status: 200 });
+  }
+
+  const user = await res.json();
+  const response = NextResponse.json({ user }, { status: 200 });
+  const setCookies = getSetCookies(res.headers);
+
+  for (const setCookie of setCookies) {
+    response.headers.append("set-cookie", setCookie);
+  }
+
+  return response;
 }

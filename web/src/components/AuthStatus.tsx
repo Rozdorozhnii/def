@@ -21,11 +21,14 @@ export function AuthStatus() {
     );
   }
 
-  if (!user) return <a href="/login">Login</a>;
+  if (!user.user) return <a href="/login">Login</a>;
 
   return (
-    <button onClick={handleLogout} className="text-red-500 hover:underline">
-      Logout
-    </button>
+    <>
+      <button onClick={handleLogout} className="text-red-500 hover:underline">
+        Logout
+      </button>
+      <a href="/protected">Protected</a>
+    </>
   );
 }

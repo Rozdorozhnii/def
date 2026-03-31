@@ -4,7 +4,7 @@ const fetcher = async (url: string) => {
   const res = await fetch(url, { credentials: "include" });
 
   if (res.status === 401) {
-    return null;
+    return { user: null };
   }
 
   if (!res.ok) {
@@ -20,13 +20,9 @@ export function useAuth() {
     revalidateOnFocus: false,
   });
 
-  const refreshUser = async () => {
-    await mutate("/api/auth/users");
-  };
-
   return {
-    user: data,
+    user: data ?? null,
     isLoading,
-    refreshUser,
+    refreshUser: () => mutate("/api/auth/users"),
   };
 }

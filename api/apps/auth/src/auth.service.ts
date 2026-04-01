@@ -2,14 +2,23 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
+import * as bcryptjs from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 
-import { JwtAccessPayload, sha256, UserDocument } from '@app/common';
+import {
+  JwtAccessPayload,
+  NOTIFICATIONS_SERVICE,
+  sha256,
+  UserDocument,
+} from '@app/common';
 import { TokenPayload } from './interfaces/token-payload';
 import { SessionRepository } from './session.repository';
 import { UsersRepository } from './users/users.repository';
@@ -23,6 +32,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly usersRepository: UsersRepository,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: ClientProxy,
   ) {}
 
   private signAccessToken(payload: TokenPayload) {
@@ -213,5 +224,54 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException();
     }
+  }
+
+  // Do not throw if email not found — avoids leaking whether the account exists
+  async forgotPassword(email: string): Promise<void> {
+    let user: UserDocument | null = null;
+
+    try {
+      user = await this.usersRepository.findOne({ email });
+    } catch {
+      return;
+    }
+
+    const rawToken = randomBytes(32).toString('hex');
+
+    await this.usersRepository.findandUpdate(
+      { _id: user._id },
+      {
+        passwordResetToken: sha256(rawToken),
+        passwordResetExpires: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+      },
+    );
+
+    this.notificationsService.emit('reset_password', {
+      email: user.email,
+      resetToken: rawToken,
+    });
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const user = await this.usersRepository.findOne({
+      passwordResetToken: sha256(token),
+      passwordResetExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    await this.usersRepository.findandUpdate(
+      { _id: user._id },
+      {
+        password: await bcryptjs.hash(newPassword, 10),
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    );
+
+    // Revoke all active sessions — forces re-login on all devices after password change
+    await this.sessionRepository.revokeAllByUser(user._id);
   }
 }

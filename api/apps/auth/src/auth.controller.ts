@@ -23,6 +23,8 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { CurrentUser, getCookie, UserDocument } from '@app/common';
 import { RequestWithAuthCookies } from './strategies/jwt.strategy';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -100,5 +102,19 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.verifyEmail(verifyEmailDto.token, req, res);
+  }
+
+  // Always returns 204 — avoids leaking whether the email exists
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async forgotPassword(@Body() { email }: ForgotPasswordDto) {
+    await this.authService.forgotPassword(email);
+  }
+
+  // token from body (sent via email link), newPassword — the new password to set
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resetPassword(@Body() { token, newPassword }: ResetPasswordDto) {
+    await this.authService.resetPassword(token, newPassword);
   }
 }

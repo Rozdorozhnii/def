@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { mutate } from "swr";
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
@@ -27,6 +28,7 @@ export default function VerifyEmailPage() {
           throw new Error();
         }
 
+        await mutate("/api/auth/users");
         setTimeout(() => {
           router.push("/");
         }, 800);

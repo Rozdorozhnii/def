@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Transport } from '@nestjs/microservices';
+import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 
 import { NotificationsModule } from './notifications.module';
@@ -15,7 +16,8 @@ async function bootstrap() {
       port: configService.getOrThrow<number>('TCP_PORT'),
     },
   });
-  app.useLogger(app.get(Logger)); // Optional: Set up a logger if needed
+  app.useGlobalPipes(new ValidationPipe());
+  app.useLogger(app.get(Logger));
   await app.startAllMicroservices();
 }
 void bootstrap();

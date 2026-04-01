@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
 
-import { NotifyEmailDto, VerifyEmailDto } from './dto';
+import { NotifyEmailDto, ResetPasswordNotifyDto, VerifyEmailDto } from './dto';
 
 @Injectable()
 export class NotificationsService {
@@ -31,6 +31,44 @@ export class NotificationsService {
       to: email,
       subject: 'Defenders notifications',
       text,
+    });
+  }
+
+  async resetPassword({ email, resetToken }: ResetPasswordNotifyDto) {
+    const resetUrl = `${this.configService.getOrThrow('FRONTEND_URL')}/reset-password?token=${resetToken}`;
+
+    await this.transporter.sendMail({
+      from: this.configService.getOrThrow('SMTP_USER'),
+      to: email,
+      subject: 'Reset your password',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8" /><title>Password Reset</title></head>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px;">
+          <table width="100%" style="max-width:600px; margin: auto; background: white; padding: 32px; border-radius: 8px;">
+            <tr><td>
+              <h2 style="margin-top: 0;">Reset your password</h2>
+              <p>We received a request to reset your password. Click the button below to choose a new one.</p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${resetUrl}"
+                  style="background-color: #ff4102; color: white; padding: 12px 24px;
+                         text-decoration: none; border-radius: 6px; font-weight: bold;">
+                  Reset Password
+                </a>
+              </div>
+              <p>If the button doesn't work, copy and paste this link:</p>
+              <p style="word-break: break-all;">${resetUrl}</p>
+              <hr style="margin: 32px 0;" />
+              <p style="font-size: 12px; color: #666;">
+                This link expires in 15 minutes. If you didn't request a password reset, ignore this email.
+              </p>
+            </td></tr>
+          </table>
+        </body>
+        </html>
+      `,
+      text: `Reset your password\n\nClick the link below:\n\n${resetUrl}\n\nThis link expires in 15 minutes.\n\nIf you didn't request this, ignore this email.`,
     });
   }
 

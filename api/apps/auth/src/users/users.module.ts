@@ -33,6 +33,6 @@ import { UsersRepository } from './users.repository';
   ],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository],
-  exports: [UsersService, UsersRepository],
+  exports: [UsersService, UsersRepository, ClientsModule],
 })
 export class UsersModule {}

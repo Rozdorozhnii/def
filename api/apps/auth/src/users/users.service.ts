@@ -48,6 +48,8 @@ export class UsersService {
       isEmailVerified: false,
       emailVerificationToken: hashedToken,
       emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60), // 1h
+      passwordResetToken: null,
+      passwordResetExpires: null,
     });
 
     this.notificationsService.emit('verify_email', {

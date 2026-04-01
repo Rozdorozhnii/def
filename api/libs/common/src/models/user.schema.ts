@@ -18,6 +18,12 @@ export class UserDocument extends AbstractDocument {
 
   @Prop({ type: Date, default: null })
   emailVerificationExpires: Date | null;
+
+  @Prop({ type: String, default: null })
+  passwordResetToken: string | null;
+
+  @Prop({ type: Date, default: null })
+  passwordResetExpires: Date | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserDocument);

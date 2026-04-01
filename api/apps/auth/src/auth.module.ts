@@ -34,6 +34,9 @@ import { SessionRepository } from './session.repository';
         JWT_REFRESH_SECRET: Joi.string().required(),
         JWT_REFRESH_EXPIRATION: Joi.number().required(),
 
+        NOTIFICATIONS_HOST: Joi.string().required(),
+        NOTIFICATIONS_PORT: Joi.number().required(),
+
         HTTP_PORT: Joi.number().required(),
         TCP_PORT: Joi.number().required(),
         NODE_ENV: Joi.string()

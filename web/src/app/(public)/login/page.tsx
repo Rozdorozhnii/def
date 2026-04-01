@@ -33,7 +33,7 @@ export default function LoginPage() {
     const endpointMap = {
       login: "/api/auth/login",
       register: "/api/auth/register",
-      reset: "/api/auth/reset-password",
+      reset: "/api/auth/forgot-password",
     };
 
     const body = mode === "reset" ? { email } : { email, password };

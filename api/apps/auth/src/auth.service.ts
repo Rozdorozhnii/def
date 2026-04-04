@@ -88,6 +88,7 @@ export class AuthService {
     const payload: TokenPayload = {
       userId: user._id.toHexString(),
       sessionId: session._id.toHexString(),
+      role: user.role ?? null,
     };
 
     const accessToken = this.signAccessToken(payload);
@@ -150,6 +151,7 @@ export class AuthService {
     const payload: TokenPayload = {
       userId: decoded.userId,
       sessionId: newSession._id.toHexString(),
+      role: decoded.role,
     };
 
     const newAccess = this.signAccessToken(payload);
@@ -220,7 +222,11 @@ export class AuthService {
         throw new UnauthorizedException('User not found');
       }
 
-      return user;
+      return {
+        _id: user._id.toHexString(),
+        email: user.email,
+        role: user.role ?? null,
+      };
     } catch {
       throw new UnauthorizedException();
     }

@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 import { AbstractDocument } from '@app/common';
+import { UserRole } from '../enums';
 
 @Schema({ versionKey: false })
 export class UserDocument extends AbstractDocument {
@@ -24,6 +25,9 @@ export class UserDocument extends AbstractDocument {
 
   @Prop({ type: Date, default: null })
   passwordResetExpires: Date | null;
+
+  @Prop({ type: String, enum: UserRole, default: null })
+  role: UserRole | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserDocument);

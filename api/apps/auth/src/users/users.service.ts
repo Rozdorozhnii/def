@@ -50,6 +50,7 @@ export class UsersService {
       emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60), // 1h
       passwordResetToken: null,
       passwordResetExpires: null,
+      role: null,
     });
 
     this.notificationsService.emit('verify_email', {

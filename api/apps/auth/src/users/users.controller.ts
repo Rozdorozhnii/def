@@ -1,8 +1,19 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 
 import { CreateUserDto } from './dto/create-user.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
 import { UsersService } from './users.service';
-import { CurrentUser, UserDocument } from '@app/common';
+import { CurrentUser, UserDocument, RolesGuard, Roles, UserRole } from '@app/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { UserResponseDto } from './dto/user-response.dto';
 
@@ -19,5 +30,18 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   getUser(@CurrentUser() user: UserDocument) {
     return new UserResponseDto(user);
+  }
+
+  // Assigns or removes a role for any user. SUPER_ADMIN only.
+  // Pass role: null to revoke all staff access.
+  @Patch(':id/role')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  async assignRole(
+    @Param('id') id: string,
+    @Body() { role }: AssignRoleDto,
+  ) {
+    await this.usersService.assignRole(id, role ?? null);
   }
 }

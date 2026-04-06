@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Note } from "@/shared/types";
 
 export default function NotesItem(note: Note) {
+  const translation = note.translations.en;
+
   return (
     <div
       style={{
@@ -12,10 +14,12 @@ export default function NotesItem(note: Note) {
       }}
     >
       <h3>
-        <Link href={`notes/${note._id}`}>{note.title}</Link>
+        <Link href={`notes/${note.slug}`}>{translation?.title}</Link>
       </h3>
-      <p>{note.content}</p>
-      <small>{new Date(note.timestamp).toLocaleString()}</small>
+      <p>{translation?.description}</p>
+      {note.publishedAt && (
+        <small>{new Date(note.publishedAt).toLocaleString()}</small>
+      )}
     </div>
   );
 }

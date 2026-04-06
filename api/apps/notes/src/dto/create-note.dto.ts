@@ -1,5 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
+// Author provides Ukrainian original content.
+// Slug is auto-generated from uk.title (transliterated) and updated to en.title after translation.
 export class CreateNoteDto {
   @IsString()
   @IsNotEmpty()
@@ -7,5 +9,9 @@ export class CreateNoteDto {
 
   @IsString()
   @IsNotEmpty()
-  content: string;
+  description: string;
+
+  @IsString()
+  @IsNotEmpty()
+  body: string;
 }

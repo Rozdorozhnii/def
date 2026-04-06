@@ -5,7 +5,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const res = await fetch(`${process.env.NOTES_URL}/notes/${slug}`, {
+  const res = await fetch(`${process.env.NOTES_URL}/notes/published/${slug}`, {
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
   });

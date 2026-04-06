@@ -2,25 +2,62 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  OnApplicationBootstrap,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcryptjs from 'bcryptjs';
 import { ClientProxy } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersRepository } from './users.repository';
 import { GetUserDto } from './dto/get-user.dto';
-import { NOTIFICATIONS_SERVICE, sha256 } from '@app/common';
+import { NOTIFICATIONS_SERVICE, sha256, UserRole } from '@app/common';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly usersRepository: UsersRepository,
+    private readonly configService: ConfigService,
     @Inject(NOTIFICATIONS_SERVICE)
     private readonly notificationsService: ClientProxy,
   ) {}
+
+  // Runs once after the app starts.
+  // Creates the first SUPER_ADMIN if BOOTSTRAP_ADMIN_EMAIL and
+  // BOOTSTRAP_ADMIN_PASSWORD are set in env and no super_admin exists yet.
+  // Remove the env vars after the first deploy — bootstrap won't run again
+  // once any super_admin exists.
+  async onApplicationBootstrap() {
+    const email = this.configService.get<string>('BOOTSTRAP_ADMIN_EMAIL');
+    const password = this.configService.get<string>('BOOTSTRAP_ADMIN_PASSWORD');
+
+    if (!email || !password) return;
+
+    try {
+      await this.usersRepository.findOne({ role: UserRole.SUPER_ADMIN });
+    } catch (err) {
+      if (!(err instanceof NotFoundException)) throw err;
+
+      await this.usersRepository.create({
+        email,
+        password: await bcryptjs.hash(password, 10),
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        role: UserRole.SUPER_ADMIN,
+      });
+
+      this.logger.log(`Bootstrap: super_admin created (${email})`);
+    }
+  }
 
   async validateUserEmail(email: string) {
     try {
@@ -78,5 +115,14 @@ export class UsersService {
 
   async getUser(getUserDto: GetUserDto) {
     return this.usersRepository.findOne(getUserDto);
+  }
+
+  // Assigns a role to a user by id.
+  // Only SUPER_ADMIN can call this — enforced at the controller level.
+  async assignRole(userId: string, role: UserRole | null) {
+    return this.usersRepository.findandUpdate(
+      { _id: userId },
+      { $set: { role } },
+    );
   }
 }

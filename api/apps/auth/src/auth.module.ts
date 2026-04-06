@@ -42,6 +42,10 @@ import { SessionRepository } from './session.repository';
         NODE_ENV: Joi.string()
           .valid('development', 'production', 'test', 'staging')
           .required(),
+
+        // Optional — only needed on first deploy to seed the super_admin account
+        BOOTSTRAP_ADMIN_EMAIL: Joi.string().email().optional(),
+        BOOTSTRAP_ADMIN_PASSWORD: Joi.string().min(8).optional(),
       }),
     }),
     JwtModule.register({}),

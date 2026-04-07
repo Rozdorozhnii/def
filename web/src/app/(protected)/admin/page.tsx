@@ -21,7 +21,7 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-bold">Articles</h1>
         <Link
           href="/admin/notes/new"
-          className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+          className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 text-sm"
         >
           New article
         </Link>

@@ -117,6 +117,17 @@ export class UsersService implements OnApplicationBootstrap {
     return this.usersRepository.findOne(getUserDto);
   }
 
+  // Returns all users. SUPER_ADMIN only — enforced at the controller level.
+  async findAll() {
+    return this.usersRepository.find({});
+  }
+
+  // Finds a single user by email. Throws 404 if not found.
+  // SUPER_ADMIN only — enforced at the controller level.
+  async findByEmail(email: string) {
+    return this.usersRepository.findOne({ email });
+  }
+
   // Assigns a role to a user by id.
   // Only SUPER_ADMIN can call this — enforced at the controller level.
   async assignRole(userId: string, role: UserRole | null) {

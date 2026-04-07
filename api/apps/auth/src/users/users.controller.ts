@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -26,10 +27,25 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Get()
+  // Returns the currently authenticated user
+  @Get('me')
   @UseGuards(JwtAuthGuard)
-  getUser(@CurrentUser() user: UserDocument) {
+  getMe(@CurrentUser() user: UserDocument) {
     return new UserResponseDto(user);
+  }
+
+  // Returns all users, or a single user if ?email= is provided. SUPER_ADMIN only.
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  async findAll(@Query('email') email?: string) {
+    if (email) {
+      const user = await this.usersService.findByEmail(email);
+      return new UserResponseDto(user);
+    }
+
+    const users = await this.usersService.findAll();
+    return users.map((u) => new UserResponseDto(u));
   }
 
   // Assigns or removes a role for any user. SUPER_ADMIN only.

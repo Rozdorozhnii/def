@@ -13,6 +13,7 @@ services:
       - ./web/.env
     volumes:
       - ./web:/app
+      - ./packages:/packages
       - /app/node_modules
     restart: always
     depends_on:

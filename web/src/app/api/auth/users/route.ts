@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
 
-  const res = await fetch(`${process.env.AUTH_URL}/users`, {
+  const res = await fetch(`${process.env.AUTH_URL}/users/me`, {
     headers: { cookie: cookieHeader },
     cache: "no-store",
   });
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     .map(([k, v]) => `${k}=${v}`)
     .join("; ");
 
-  const retryRes = await fetch(`${process.env.AUTH_URL}/users`, {
+  const retryRes = await fetch(`${process.env.AUTH_URL}/users/me`, {
     headers: { cookie: mergedCookie },
     cache: "no-store",
   });

@@ -28,7 +28,7 @@ export function AuthStatus() {
       <button onClick={handleLogout} className="text-red-500 hover:underline">
         Logout
       </button>
-      <a href="/admin">Admin</a>
+      {user.user.role && <a href="/admin">Admin</a>}
     </>
   );
 }

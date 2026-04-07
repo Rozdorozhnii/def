@@ -1,0 +1,95 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { NoteStatus } from "@/shared/types";
+
+interface Props {
+  slug: string;
+  currentStatus: NoteStatus;
+  hasEnTranslation: boolean;
+}
+
+export function StatusPanel({ slug, currentStatus, hasEnTranslation }: Props) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function changeStatus(status: NoteStatus) {
+    setError(null);
+    setLoading(true);
+
+    const res = await fetch(`/api/admin/notes/${slug}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+
+    setLoading(false);
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.message ?? "Something went wrong");
+      return;
+    }
+
+    // Refresh the page to reflect the new status
+    router.refresh();
+  }
+
+  return (
+    <section>
+      <h2 className="text-lg font-semibold mb-4">Workflow</h2>
+
+      <div className="flex gap-3 flex-wrap">
+        {currentStatus === "draft" && (
+          <button
+            onClick={() => changeStatus("review")}
+            disabled={loading}
+            className="border px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            Send to review
+          </button>
+        )}
+
+        {currentStatus === "review" && (
+          <>
+            <button
+              onClick={() => changeStatus("published")}
+              disabled={loading || !hasEnTranslation}
+              title={!hasEnTranslation ? "English translation required" : undefined}
+              className="bg-black text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-50"
+            >
+              Publish
+            </button>
+            <button
+              onClick={() => changeStatus("draft")}
+              disabled={loading}
+              className="border px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+            >
+              Back to draft
+            </button>
+          </>
+        )}
+
+        {currentStatus === "published" && (
+          <button
+            onClick={() => changeStatus("draft")}
+            disabled={loading}
+            className="border px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            Unpublish
+          </button>
+        )}
+      </div>
+
+      {!hasEnTranslation && currentStatus === "review" && (
+        <p className="text-gray-500 text-sm mt-2">
+          Add an English translation before publishing.
+        </p>
+      )}
+
+      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+    </section>
+  );
+}

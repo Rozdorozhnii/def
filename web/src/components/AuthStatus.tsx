@@ -28,7 +28,7 @@ export function AuthStatus() {
       <button onClick={handleLogout} className="text-red-500 hover:underline">
         Logout
       </button>
-      <a href="/protected">Protected</a>
+      <a href="/admin">Admin</a>
     </>
   );
 }

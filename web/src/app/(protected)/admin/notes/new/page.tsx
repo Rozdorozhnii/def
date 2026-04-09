@@ -39,7 +39,7 @@ export default function NewNotePage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8 mx-auto">
       <h1 className="text-2xl font-bold mb-6">New article</h1>
       <p className="text-gray-500 text-sm mb-6">
         Write the Ukrainian original. English translation can be added on the next step.

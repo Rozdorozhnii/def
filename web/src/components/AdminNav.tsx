@@ -18,7 +18,7 @@ export function AdminNav({ showManageRoles }: Props) {
   }
 
   return (
-    <nav className="flex items-center gap-6 p-4 max-w-4xl mx-auto">
+    <nav className="flex items-center gap-6 p-4">
       <Link href="/admin" className={linkClass("/admin", true)}>
         Admin
       </Link>

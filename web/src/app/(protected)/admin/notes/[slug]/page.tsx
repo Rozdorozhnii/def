@@ -26,7 +26,7 @@ export default async function EditNotePage({
   const note: Note = await res.json();
 
   return (
-    <div className="p-8 max-w-2xl mx-auto flex flex-col gap-10">
+    <div className="p-8 mx-auto flex flex-col gap-10">
       <div>
         <h1 className="text-2xl font-bold">{note.slug}</h1>
         <p className="text-sm text-gray-500 mt-1">Status: {note.status}</p>

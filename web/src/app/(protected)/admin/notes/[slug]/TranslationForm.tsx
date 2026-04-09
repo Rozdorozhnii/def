@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { NoteTranslation, NoteLocale } from "@/shared/types";
+import { Editor } from "@/components/Editor";
 
 interface Props {
   slug: string;
@@ -13,6 +14,9 @@ export function TranslationForm({ slug, locale, initial }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // body is managed by Editor (not FormData) — stored in state
+  const [body, setBody] = useState(initial?.body ?? "");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,7 +33,7 @@ export function TranslationForm({ slug, locale, initial }: Props) {
         locale,
         title: form.get("title"),
         description: form.get("description"),
-        body: form.get("body"),
+        body,
       }),
     });
 
@@ -59,7 +63,7 @@ export function TranslationForm({ slug, locale, initial }: Props) {
             type="text"
             required
             defaultValue={initial?.title ?? ""}
-            className="border rounded px-3 py-2 text-sm"
+            className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none text-sm"
           />
         </div>
 
@@ -71,19 +75,16 @@ export function TranslationForm({ slug, locale, initial }: Props) {
             type="text"
             required
             defaultValue={initial?.description ?? ""}
-            className="border rounded px-3 py-2 text-sm"
+            className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none text-sm"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${locale}-body`} className="font-medium text-sm">Body (HTML)</label>
-          <textarea
-            id={`${locale}-body`}
-            name="body"
-            required
-            rows={8}
-            defaultValue={initial?.body ?? ""}
-            className="border rounded px-3 py-2 text-sm font-mono"
+          <label className="font-medium text-sm">Body</label>
+          <Editor
+            value={body}
+            onChange={setBody}
+            placeholder="Start writing the article..."
           />
         </div>
 
@@ -93,7 +94,10 @@ export function TranslationForm({ slug, locale, initial }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="self-start bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50 text-sm"
+          className="cursor-pointer self-start font-bold px-6 py-2 rounded text-sm text-white
+            border border-[#ff4102] bg-[#ff4102] shadow-md
+            hover:bg-white hover:text-[#ff4102] transition duration-300
+            disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Saving…" : "Save"}
         </button>

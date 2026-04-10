@@ -23,23 +23,41 @@ export default async function NotePage({
   const translation = note.translations.en;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">{translation?.title}</h1>
-      <p className="mt-2 text-gray-500">{translation?.description}</p>
+    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+      {/* Back link */}
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-black transition mb-8"
+      >
+        ← Back to articles
+      </Link>
+
+      {/* Article header */}
+      <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">
+        {translation?.title}
+      </h1>
+
+      {translation?.description && (
+        <p className="text-lg text-gray-500 mb-6 leading-relaxed">
+          {translation.description}
+        </p>
+      )}
+
+      {note.publishedAt && (
+        <p className="text-xs text-gray-400 mb-10 pb-10 border-b border-[#dfdbd8]">
+          {new Date(note.publishedAt).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+        </p>
+      )}
+
+      {/* Article body — prose styles raw HTML from Tiptap */}
       <div
-        className="mt-6 prose"
+        className="prose prose-neutral max-w-none"
         dangerouslySetInnerHTML={{ __html: translation?.body ?? "" }}
       />
-      {note.publishedAt && (
-        <small className="text-gray-400">
-          {new Date(note.publishedAt).toLocaleString()}
-        </small>
-      )}
-      <div className="mt-8">
-        <Link href="/" className="text-blue-500 hover:underline">
-          Back to Notes
-        </Link>
-      </div>
-    </div>
+    </main>
   );
 }

@@ -30,6 +30,12 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
     return document;
   }
 
+  async findOneOrNull(
+    filterQuery: FilterQuery<TDocument>,
+  ): Promise<TDocument | null> {
+    return this.model.findOne(filterQuery).lean<TDocument>(true);
+  }
+
   async findandUpdate(
     filterQuery: FilterQuery<TDocument>,
     update: UpdateQuery<TDocument>,

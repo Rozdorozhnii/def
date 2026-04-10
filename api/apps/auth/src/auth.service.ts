@@ -259,7 +259,7 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    const user = await this.usersRepository.findOne({
+    const user = await this.usersRepository.findOneOrNull({
       passwordResetToken: sha256(token),
       passwordResetExpires: { $gt: new Date() },
     });

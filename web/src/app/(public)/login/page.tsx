@@ -52,6 +52,8 @@ export default function LoginPage() {
 
     if (mode === "reset") {
       setSuccess("Password reset email sent");
+    } else if (mode === "register") {
+      setSuccess("Check your email to verify your account");
     } else {
       await refreshUser();
       router.push("/");
@@ -162,10 +164,13 @@ export default function LoginPage() {
           </form>
 
           {/* SWITCH MODE */}
-          <div className="text-center space-y-2 text-sm">
+          <div className="mt-6 text-center space-y-2 text-sm">
             {mode !== "login" && (
-              <button onClick={() => setMode("login")} className="link">
-                Back to login
+              <button
+                onClick={() => setMode("login")}
+                className="cursor-pointer text-gray-500 hover:text-black transition duration-200"
+              >
+                ← Back to login
               </button>
             )}
 
@@ -173,13 +178,13 @@ export default function LoginPage() {
               <div className="flex justify-between">
                 <button
                   onClick={() => setMode("register")}
-                  className="link cursor-pointer"
+                  className="cursor-pointer text-gray-500 hover:text-black transition duration-200"
                 >
                   Create account
                 </button>
                 <button
                   onClick={() => setMode("reset")}
-                  className="link cursor-pointer"
+                  className="cursor-pointer text-gray-500 hover:text-black transition duration-200"
                 >
                   Forgot password?
                 </button>

@@ -4,23 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthUser } from "@contracts/auth";
 import { mutate } from "swr";
+import { isPasswordValid } from "@/lib/password";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 
 interface Props {
   user: AuthUser;
-}
-
-function validatePassword(password: string) {
-  return {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    lower: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-}
-
-function isPasswordValid(p: string) {
-  return Object.values(validatePassword(p)).every(Boolean);
 }
 
 const inputClass = "border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full";
@@ -272,24 +260,7 @@ export function ProfileForm({ user }: Props) {
                 className={`block absolute cursor-pointer right-2 top-[29px] w-[30px] h-[30px] bg-no-repeat bg-center bg-[length:26px_26px] ${isVisible ? "bg-[url('/icons/icon-show.svg')]" : "bg-[url('/icons/icon-hide.svg')]"}`}
                 onClick={() => setIsVisible(!isVisible)}
               />
-              {newPassword && (
-                <ul className="text-xs space-y-0.5 mt-2">
-                  {(() => {
-                    const v = validatePassword(newPassword);
-                    return [
-                      { label: "At least 8 characters", ok: v.length },
-                      { label: "Uppercase letter (A-Z)", ok: v.upper },
-                      { label: "Lowercase letter (a-z)", ok: v.lower },
-                      { label: "Number (0-9)", ok: v.number },
-                      { label: "Special character (!@#…)", ok: v.special },
-                    ].map((r) => (
-                      <li key={r.label} className={r.ok ? "text-green-600" : "text-red-400"}>
-                        {r.ok ? "✓" : "✗"} {r.label}
-                      </li>
-                    ));
-                  })()}
-                </ul>
-              )}
+              <PasswordRequirements password={newPassword} />
             </div>
             <div className="relative">
               <label className={labelClass} htmlFor="confirmPassword">Confirm new password</label>

@@ -4,50 +4,53 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/lib/auth/useAuth";
+import { isPasswordValid } from "@/lib/password";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 
 type AuthMode = "login" | "register" | "reset";
 
-function validatePassword(password: string) {
-  return {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    lower: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-}
-
-function isPasswordValid(password: string) {
-  const v = validatePassword(password);
-  return Object.values(v).every(Boolean);
-}
+const inputClass = "border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full";
+const labelClass = "mb-2.5 block font-bold";
+const eyeClass = (visible: boolean) =>
+  `block absolute cursor-pointer right-2 top-[51px] w-[30px] h-[30px] bg-no-repeat bg-center bg-[length:26px_26px] ${
+    visible ? "bg-[url('/icons/icon-show.svg')]" : "bg-[url('/icons/icon-hide.svg')]"
+  }`;
 
 export default function LoginPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
   const [mode, setMode] = useState<AuthMode>("login");
+
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [isVisiblePassword, setIsVisiblePassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isVisibleConfirmPassword, setIsVisibleConfirmPassword] =
-    useState(false);
+  const [isVisibleConfirmPassword, setIsVisibleConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const switchMode = (next: AuthMode) => {
+    setMode(next);
+    setError("");
+    setSuccess("");
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setSuccess("");
 
-    if (mode === "register" && !isPasswordValid(password)) {
-      setError("Password does not meet requirements");
-      return;
-    }
-
-    if (mode === "register" && password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
+    if (mode === "register") {
+      if (!isPasswordValid(password)) {
+        setError("Password does not meet requirements");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
     }
 
     const endpointMap = {
@@ -56,7 +59,17 @@ export default function LoginPage() {
       reset: "/api/auth/forgot-password",
     };
 
-    const body = mode === "reset" ? { email } : { email, password };
+    const body =
+      mode === "reset"
+        ? { email }
+        : mode === "register"
+          ? {
+              email,
+              password,
+              firstName: firstName.trim() || undefined,
+              lastName: lastName.trim() || undefined,
+            }
+          : { email, password };
 
     const res = await fetch(endpointMap[mode], {
       method: "POST",
@@ -86,11 +99,9 @@ export default function LoginPage() {
         <div className="mx-auto my-25 p-8 max-w-112 rounded-lg shadow-md bg-white">
           <form onSubmit={handleSubmit}>
             <div className="py-3">
-              <label className="mb-2.5 block font-bold" htmlFor="email">
-                Email
-              </label>
+              <label className={labelClass} htmlFor="email">Email</label>
               <input
-                className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full"
+                className={inputClass}
                 id="email"
                 type="email"
                 value={email}
@@ -99,89 +110,74 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* FIRST NAME + LAST NAME */}
+            {mode === "register" && (
+              <div className="grid grid-cols-2 gap-4 py-3">
+                <div>
+                  <label className={labelClass} htmlFor="firstName">
+                    First name{" "}
+                    <span className="text-gray-400 font-normal text-sm">(optional)</span>
+                  </label>
+                  <input
+                    className={inputClass}
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass} htmlFor="lastName">
+                    Last name{" "}
+                    <span className="text-gray-400 font-normal text-sm">(optional)</span>
+                  </label>
+                  <input
+                    className={inputClass}
+                    id="lastName"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* PASSWORD */}
             {mode !== "reset" && (
-              <div className="relative w-full py-3">
-                <label className="mb-2.5 block font-bold" htmlFor="password">
-                  Password
-                </label>
+              <div className="relative py-3">
+                <label className={labelClass} htmlFor="password">Password</label>
                 <input
-                  className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full"
+                  className={inputClass}
                   id="password"
                   type={isVisiblePassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <span
-                  className={`"block absolute cursor-pointer right-2 top-[51px] w-[30px] h-[30px] bg-no-repeat bg-center bg-[length:26px_26px]
-                ${
-                  isVisiblePassword
-                    ? "bg-[url('/icons/icon-show.svg')]"
-                    : "bg-[url('/icons/icon-hide.svg')]"
-                }`}
-                  onClick={() => setIsVisiblePassword(!isVisiblePassword)}
-                />
+                <span className={eyeClass(isVisiblePassword)} onClick={() => setIsVisiblePassword(!isVisiblePassword)} />
+                {mode === "register" && <PasswordRequirements password={password} />}
               </div>
-            )}
-
-            {/* PASSWORD REQUIREMENTS */}
-            {mode === "register" && password && (
-              <ul className="text-xs space-y-0.5 mb-1 -mt-1">
-                {(() => {
-                  const v = validatePassword(password);
-                  const rules = [
-                    { label: "At least 8 characters", ok: v.length },
-                    { label: "Uppercase letter (A-Z)", ok: v.upper },
-                    { label: "Lowercase letter (a-z)", ok: v.lower },
-                    { label: "Number (0-9)", ok: v.number },
-                    { label: "Special character (!@#…)", ok: v.special },
-                  ];
-                  return rules.map((r) => (
-                    <li key={r.label} className={r.ok ? "text-green-600" : "text-red-400"}>
-                      {r.ok ? "✓" : "✗"} {r.label}
-                    </li>
-                  ));
-                })()}
-              </ul>
             )}
 
             {/* CONFIRM PASSWORD */}
             {mode === "register" && (
               <div className="relative py-3">
-                <label
-                  className="mb-2.5 block font-bold"
-                  htmlFor="confirmPassword"
-                >
-                  Confirm Password
-                </label>
+                <label className={labelClass} htmlFor="confirmPassword">Confirm Password</label>
                 <input
-                  className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full"
+                  className={inputClass}
                   id="confirmPassword"
                   type={isVisibleConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
-                <span
-                  className={`"block absolute cursor-pointer right-2 top-[51px] w-[30px] h-[30px] bg-no-repeat bg-center bg-[length:26px_26px]
-                ${
-                  isVisibleConfirmPassword
-                    ? "bg-[url('/icons/icon-show.svg')]"
-                    : "bg-[url('/icons/icon-hide.svg')]"
-                }`}
-                  onClick={() =>
-                    setIsVisibleConfirmPassword(!isVisibleConfirmPassword)
-                  }
-                />
+                <span className={eyeClass(isVisibleConfirmPassword)} onClick={() => setIsVisibleConfirmPassword(!isVisibleConfirmPassword)} />
               </div>
             )}
 
-            {/* ERRORS / SUCCESS */}
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-600">{success}</p>}
 
-            {/* SUBMIT */}
             <div className="py-3">
               <button
                 type="submit"
@@ -193,9 +189,9 @@ export default function LoginPage() {
                       : !email
                 }
                 className="cursor-pointer font-bold w-full h-[50px] rounded-[38px] text-white
-                          border border-[#ff4102] bg-[#ff4102] shadow-md
-                        hover:bg-white hover:text-[#ff4102] hover:shadow-xl transition duration-300
-                        disabled:cursor-not-allowed"
+                  border border-[#ff4102] bg-[#ff4102] shadow-md
+                  hover:bg-white hover:text-[#ff4102] hover:shadow-xl transition duration-300
+                  disabled:cursor-not-allowed"
               >
                 {mode === "login" && "Login"}
                 {mode === "register" && "Register"}
@@ -204,29 +200,18 @@ export default function LoginPage() {
             </div>
           </form>
 
-          {/* SWITCH MODE */}
           <div className="mt-6 text-center space-y-2 text-sm">
             {mode !== "login" && (
-              <button
-                onClick={() => setMode("login")}
-                className="cursor-pointer text-gray-500 hover:text-black transition duration-200"
-              >
+              <button onClick={() => switchMode("login")} className="cursor-pointer text-gray-500 hover:text-black transition duration-200">
                 ← Back to login
               </button>
             )}
-
             {mode === "login" && (
               <div className="flex justify-between">
-                <button
-                  onClick={() => setMode("register")}
-                  className="cursor-pointer text-gray-500 hover:text-black transition duration-200"
-                >
+                <button onClick={() => switchMode("register")} className="cursor-pointer text-gray-500 hover:text-black transition duration-200">
                   Create account
                 </button>
-                <button
-                  onClick={() => setMode("reset")}
-                  className="cursor-pointer text-gray-500 hover:text-black transition duration-200"
-                >
+                <button onClick={() => switchMode("reset")} className="cursor-pointer text-gray-500 hover:text-black transition duration-200">
                   Forgot password?
                 </button>
               </div>

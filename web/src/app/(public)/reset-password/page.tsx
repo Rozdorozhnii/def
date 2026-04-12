@@ -4,6 +4,16 @@ import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+import { isPasswordValid } from "@/lib/password";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
+
+const inputClass = "border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full";
+const labelClass = "mb-2.5 block font-bold";
+const eyeClass = (visible: boolean) =>
+  `block absolute cursor-pointer right-2 top-[51px] w-[30px] h-[30px] bg-no-repeat bg-center bg-[length:26px_26px] ${
+    visible ? "bg-[url('/icons/icon-show.svg')]" : "bg-[url('/icons/icon-hide.svg')]"
+  }`;
+
 function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,6 +52,10 @@ function ResetPasswordForm() {
     e.preventDefault();
     setError("");
 
+    if (!isPasswordValid(password)) {
+      setError("Password does not meet requirements");
+      return;
+    }
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -74,11 +88,9 @@ function ResetPasswordForm() {
 
         <form onSubmit={handleSubmit}>
           <div className="relative py-3">
-            <label className="mb-2.5 block font-bold" htmlFor="password">
-              New Password
-            </label>
+            <label className={labelClass} htmlFor="password">New Password</label>
             <input
-              className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full"
+              className={inputClass}
               id="password"
               type={isVisible ? "text" : "password"}
               value={password}
@@ -86,40 +98,29 @@ function ResetPasswordForm() {
               required
               autoFocus
             />
-            <span
-              className={`block absolute cursor-pointer right-2 top-[51px] w-[30px] h-[30px] bg-no-repeat bg-center bg-[length:26px_26px]
-                ${isVisible ? "bg-[url('/icons/icon-show.svg')]" : "bg-[url('/icons/icon-hide.svg')]"}`}
-              onClick={() => setIsVisible(!isVisible)}
-            />
+            <span className={eyeClass(isVisible)} onClick={() => setIsVisible(!isVisible)} />
+            <PasswordRequirements password={password} />
           </div>
 
           <div className="relative py-3">
-            <label className="mb-2.5 block font-bold" htmlFor="confirmPassword">
-              Confirm Password
-            </label>
+            <label className={labelClass} htmlFor="confirmPassword">Confirm Password</label>
             <input
-              className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none w-full"
+              className={inputClass}
               id="confirmPassword"
               type={isVisibleConfirm ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
-            <span
-              className={`"block absolute cursor-pointer right-2 top-[51px] w-[30px] h-[30px] bg-no-repeat bg-center bg-[length:26px_26px]
-                ${isVisibleConfirm ? "bg-[url('/icons/icon-show.svg')]" : "bg-[url('/icons/icon-hide.svg')]"}`}
-              onClick={() => setIsVisibleConfirm(!isVisibleConfirm)}
-            />
+            <span className={eyeClass(isVisibleConfirm)} onClick={() => setIsVisibleConfirm(!isVisibleConfirm)} />
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm mb-2">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
           <div className="pt-3">
             <button
               type="submit"
-              disabled={!password || !confirmPassword || loading}
+              disabled={!isPasswordValid(password) || !confirmPassword || loading}
               className="cursor-pointer font-bold w-full h-[50px] rounded-[38px] text-white
                 border border-[#ff4102] bg-[#ff4102] shadow-md
                 hover:bg-white hover:text-[#ff4102] hover:shadow-xl transition duration-300

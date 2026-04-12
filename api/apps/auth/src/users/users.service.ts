@@ -93,8 +93,8 @@ export class UsersService implements OnApplicationBootstrap {
       emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60), // 1h
       passwordResetToken: null,
       passwordResetExpires: null,
-      firstName: null,
-      lastName: null,
+      firstName: createUserDto.firstName ?? null,
+      lastName: createUserDto.lastName ?? null,
       pendingEmail: null,
       pendingEmailToken: null,
       pendingEmailExpires: null,

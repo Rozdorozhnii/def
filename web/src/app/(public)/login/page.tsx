@@ -7,6 +7,21 @@ import { useAuth } from "@/lib/auth/useAuth";
 
 type AuthMode = "login" | "register" | "reset";
 
+function validatePassword(password: string) {
+  return {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
+}
+
+function isPasswordValid(password: string) {
+  const v = validatePassword(password);
+  return Object.values(v).every(Boolean);
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
@@ -24,6 +39,11 @@ export default function LoginPage() {
     event.preventDefault();
     setError("");
     setSuccess("");
+
+    if (mode === "register" && !isPasswordValid(password)) {
+      setError("Password does not meet requirements");
+      return;
+    }
 
     if (mode === "register" && password !== confirmPassword) {
       setError("Passwords do not match");
@@ -105,6 +125,27 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* PASSWORD REQUIREMENTS */}
+            {mode === "register" && password && (
+              <ul className="text-xs space-y-0.5 mb-1 -mt-1">
+                {(() => {
+                  const v = validatePassword(password);
+                  const rules = [
+                    { label: "At least 8 characters", ok: v.length },
+                    { label: "Uppercase letter (A-Z)", ok: v.upper },
+                    { label: "Lowercase letter (a-z)", ok: v.lower },
+                    { label: "Number (0-9)", ok: v.number },
+                    { label: "Special character (!@#…)", ok: v.special },
+                  ];
+                  return rules.map((r) => (
+                    <li key={r.label} className={r.ok ? "text-green-600" : "text-red-400"}>
+                      {r.ok ? "✓" : "✗"} {r.label}
+                    </li>
+                  ));
+                })()}
+              </ul>
+            )}
+
             {/* CONFIRM PASSWORD */}
             {mode === "register" && (
               <div className="relative py-3">
@@ -146,7 +187,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={
                   mode === "register"
-                    ? !email || !password || !confirmPassword
+                    ? !email || !isPasswordValid(password) || !confirmPassword
                     : mode === "login"
                       ? !email || !password
                       : !email

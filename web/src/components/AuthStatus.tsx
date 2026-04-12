@@ -47,7 +47,10 @@ export function AuthStatus() {
         className="flex items-center gap-1.5 text-gray-600 hover:text-black transition cursor-pointer"
       >
         <span className="w-7 h-7 rounded-full bg-[#ff4102] text-white text-xs flex items-center justify-center font-bold select-none">
-          {user.user.email[0].toUpperCase()}
+          {[user.user.firstName, user.user.lastName]
+            .filter(Boolean)
+            .map((n) => n![0].toUpperCase())
+            .join("") || user.user.email[0].toUpperCase()}
         </span>
         <svg
           className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}

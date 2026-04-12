@@ -11,6 +11,8 @@ export const ROLE_LABEL: Record<UserRole, string> = {
 export interface AuthUser {
   id: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
   isEmailVerified: boolean;
   role: UserRole | null;
 }

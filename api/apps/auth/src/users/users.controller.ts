@@ -13,6 +13,9 @@ import {
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangeEmailDto } from './dto/change-email.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UsersService } from './users.service';
 import { CurrentUser, UserDocument, RolesGuard, Roles, UserRole } from '@app/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -32,6 +35,42 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   getMe(@CurrentUser() user: UserDocument) {
     return new UserResponseDto(user);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(
+    @CurrentUser() user: UserDocument,
+    @Body() { firstName, lastName }: UpdateProfileDto,
+  ) {
+    const updated = await this.usersService.updateProfile(user._id.toString(), firstName ?? null, lastName ?? null);
+    return new UserResponseDto(updated);
+  }
+
+  @Patch('me/email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async requestEmailChange(
+    @CurrentUser() user: UserDocument,
+    @Body() { email }: ChangeEmailDto,
+  ) {
+    await this.usersService.requestEmailChange(user._id.toString(), email);
+  }
+
+  @Patch('me/email/confirm')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async confirmEmailChange(@Body('token') token: string) {
+    await this.usersService.confirmEmailChange(token);
+  }
+
+  @Patch('me/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @CurrentUser() user: UserDocument,
+    @Body() { currentPassword, newPassword }: ChangePasswordDto,
+  ) {
+    await this.usersService.changePassword(user._id.toString(), currentPassword, newPassword);
   }
 
   // Returns all users, or a single user if ?email= is provided. SUPER_ADMIN only.

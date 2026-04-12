@@ -76,6 +76,8 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/account/:path*",
+    "/profile/:path*",
+    "/profile",
     "/api/admin/:path*",
     "/api/account/:path*",
   ],

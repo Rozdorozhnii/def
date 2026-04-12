@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -52,6 +53,11 @@ export class UsersService implements OnApplicationBootstrap {
         emailVerificationExpires: null,
         passwordResetToken: null,
         passwordResetExpires: null,
+        firstName: null,
+        lastName: null,
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailExpires: null,
         role: UserRole.SUPER_ADMIN,
       });
 
@@ -87,6 +93,11 @@ export class UsersService implements OnApplicationBootstrap {
       emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60), // 1h
       passwordResetToken: null,
       passwordResetExpires: null,
+      firstName: null,
+      lastName: null,
+      pendingEmail: null,
+      pendingEmailToken: null,
+      pendingEmailExpires: null,
       role: null,
     });
 
@@ -126,6 +137,73 @@ export class UsersService implements OnApplicationBootstrap {
   // SUPER_ADMIN only — enforced at the controller level.
   async findByEmail(email: string) {
     return this.usersRepository.findOne({ email });
+  }
+
+  async updateProfile(userId: string, firstName: string | null, lastName: string | null) {
+    return this.usersRepository.findandUpdate(
+      { _id: userId },
+      { $set: { firstName, lastName } },
+    );
+  }
+
+  async requestEmailChange(userId: string, newEmail: string) {
+    await this.validateUserEmail(newEmail);
+
+    const rawToken = randomBytes(32).toString('hex');
+
+    await this.usersRepository.findandUpdate(
+      { _id: userId },
+      {
+        $set: {
+          pendingEmail: newEmail,
+          pendingEmailToken: sha256(rawToken),
+          pendingEmailExpires: new Date(Date.now() + 1000 * 60 * 60), // 1h
+        },
+      },
+    );
+
+    this.notificationsService.emit('verify_email', {
+      email: newEmail,
+      verificationToken: rawToken,
+      isEmailChange: true,
+    });
+  }
+
+  async confirmEmailChange(token: string) {
+    const user = await this.usersRepository.findOneOrNull({
+      pendingEmailToken: sha256(token),
+      pendingEmailExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    await this.usersRepository.findandUpdate(
+      { _id: user._id },
+      {
+        $set: {
+          email: user.pendingEmail,
+          pendingEmail: null,
+          pendingEmailToken: null,
+          pendingEmailExpires: null,
+        },
+      },
+    );
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.usersRepository.findById(userId);
+    const isValid = await bcryptjs.compare(currentPassword, user.password);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    await this.usersRepository.findandUpdate(
+      { _id: userId },
+      { $set: { password: await bcryptjs.hash(newPassword, 10) } },
+    );
   }
 
   // Assigns a role to a user by id.

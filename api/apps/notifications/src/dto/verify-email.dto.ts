@@ -1,4 +1,4 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class VerifyEmailDto {
   @IsEmail()
@@ -6,4 +6,8 @@ export class VerifyEmailDto {
 
   @IsString()
   verificationToken: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isEmailChange?: boolean;
 }

@@ -26,6 +26,21 @@ export class UserDocument extends AbstractDocument {
   @Prop({ type: Date, default: null })
   passwordResetExpires: Date | null;
 
+  @Prop({ type: String, default: null })
+  firstName: string | null;
+
+  @Prop({ type: String, default: null })
+  lastName: string | null;
+
+  @Prop({ type: String, default: null })
+  pendingEmail: string | null;
+
+  @Prop({ type: String, default: null })
+  pendingEmailToken: string | null;
+
+  @Prop({ type: Date, default: null })
+  pendingEmailExpires: Date | null;
+
   @Prop({ type: String, enum: UserRole, default: null })
   role: UserRole | null;
 }

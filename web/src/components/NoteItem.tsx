@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Note } from "@/shared/types";
+import { Note } from "@contracts/notes";
 
 export default function NotesItem(note: Note) {
   const translation = note.translations.en;

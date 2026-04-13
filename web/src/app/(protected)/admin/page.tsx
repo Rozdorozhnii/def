@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { serverFetch } from "@/lib/auth/serverFetch";
 import { getBaseUrl } from "@/shared/server/getBaseUrl";
-import type { Note } from "@/shared/types";
+import type { Note } from "@contracts/notes";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",

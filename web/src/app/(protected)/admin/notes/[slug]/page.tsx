@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { serverFetch } from "@/lib/auth/serverFetch";
 import { getBaseUrl } from "@/shared/server/getBaseUrl";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
-import type { Note } from "@/shared/types";
+import type { Note } from "@contracts/notes";
 import { TranslationForm } from "./TranslationForm";
 import { StatusPanel } from "./StatusPanel";
 

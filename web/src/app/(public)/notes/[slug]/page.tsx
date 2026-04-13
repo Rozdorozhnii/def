@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import type { Note } from "@/shared/types";
+import type { Note } from "@contracts/notes";
 import { getBaseUrl } from "@/shared/server/getBaseUrl";
 
 export default async function NotePage({

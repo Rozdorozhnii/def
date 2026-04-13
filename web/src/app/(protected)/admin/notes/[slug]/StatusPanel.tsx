@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { NoteStatus } from "@/shared/types";
+import type { NoteStatus } from "@contracts/notes";
 
 interface Props {
   slug: string;

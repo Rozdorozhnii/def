@@ -1,4 +1,4 @@
-import { Note } from "@/shared/types";
+import { Note } from "@contracts/notes";
 import NotesItem from "./NoteItem";
 
 export default function NotesList({ notes }: { notes: Note[] }) {

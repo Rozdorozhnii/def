@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { NoteTranslation, NoteLocale } from "@/shared/types";
+import type { NoteTranslation, NoteLocale } from "@contracts/notes";
 import { Editor } from "@/components/Editor";
 
 interface Props {

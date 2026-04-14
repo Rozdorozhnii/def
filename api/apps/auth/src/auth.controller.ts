@@ -91,6 +91,11 @@ export class AuthController {
     return this.authService.authenticate(data.accessToken);
   }
 
+  @MessagePattern('get_subscriber_emails')
+  getSubscriberEmails(@Payload() data: { subscriptionType: string }) {
+    return this.authService.getSubscriberEmails(data.subscriptionType);
+  }
+
   @Post('verify-email')
   @ApiOperation({ summary: 'Verify email and auto login' })
   @ApiResponse({ status: 204, description: 'Email verified' })

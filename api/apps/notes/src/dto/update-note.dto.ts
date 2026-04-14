@@ -1,11 +1,27 @@
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
-import { NoteLocale, NoteStatus } from '../models/note.schema';
+import { NoteStatus } from '../models/note.schema';
 
-// Used by author (uk) and translator (en) to add or update a translation
+// Used by author or admin to update the Ukrainian original
+export class UpdateOriginalDto {
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @IsString()
+  @IsNotEmpty()
+  body: string;
+}
+
+// Used by translator or admin to add / update a non-uk translation
 export class UpsertTranslationDto {
-  @IsEnum(['uk', 'en'])
-  locale: NoteLocale;
+  @IsString()
+  @IsNotEmpty()
+  locale: string;
 
   @IsString()
   @IsNotEmpty()

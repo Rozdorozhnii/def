@@ -1,21 +1,28 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 import { CreateNoteDto } from './dto/create-note.dto';
 import {
+  UpdateOriginalDto,
   UpsertTranslationDto,
   UpdateNoteStatusDto,
 } from './dto/update-note.dto';
 import { NotesRepository } from './notes.repository';
-import { NoteStatus } from './models/note.schema';
-import { UserDto, UserRole } from '@app/common';
+import { NoteStatus, TranslationStatus } from './models/note.schema';
+import {
+  AUTH_SERVICE,
+  NOTIFICATIONS_SERVICE,
+  UserDto,
+  UserRole,
+} from '@app/common';
 
 // Maps each Cyrillic character to its Latin equivalent for URL-safe slugs.
-// Used only for Ukrainian originals — English titles are already Latin.
 const CYRILLIC_MAP: Record<string, string> = {
   а: 'a',
   б: 'b',
@@ -56,13 +63,10 @@ function transliterate(text: string): string {
   return text
     .toLowerCase()
     .split('')
-    .map((char) => CYRILLIC_MAP[char] ?? char)
+    .map((c) => CYRILLIC_MAP[c] ?? c)
     .join('');
 }
 
-// Converts a title to a URL-safe slug.
-// Ukrainian: transliterate first, then sanitize.
-// e.g. "Військо потребує допомоги!" → "vijsko-potrebuie-dopomohy"
 function toSlug(title: string): string {
   return transliterate(title)
     .replace(/[^a-z0-9\s-]/g, '')
@@ -71,8 +75,6 @@ function toSlug(title: string): string {
     .replace(/-+/g, '-');
 }
 
-// For English titles — already Latin, just sanitize.
-// e.g. "Army needs help!" → "army-needs-help"
 function sanitizeSlug(title: string): string {
   return title
     .toLowerCase()
@@ -88,21 +90,20 @@ function isAdmin(user: UserDto): boolean {
 
 @Injectable()
 export class NotesService {
-  constructor(private readonly notesRepository: NotesRepository) {}
+  constructor(
+    private readonly notesRepository: NotesRepository,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: ClientProxy,
+    @Inject(AUTH_SERVICE)
+    private readonly authService: ClientProxy,
+  ) {}
 
   // Creates a new article draft with the Ukrainian original.
   // Only AUTHOR (and ADMIN acting as author) can call this.
-  // Slug is auto-generated from the Ukrainian title and must be unique.
   async create(dto: CreateNoteDto, user: UserDto) {
     const slug = toSlug(dto.title);
 
-    const existing = await this.notesRepository
-      .findOne({ slug })
-      .catch((err: unknown) => {
-        if (err instanceof NotFoundException) return null;
-        throw err;
-      });
-
+    const existing = await this.notesRepository.findOneOrNull({ slug });
     if (existing) {
       throw new BadRequestException(`Slug "${slug}" already exists`);
     }
@@ -112,64 +113,69 @@ export class NotesService {
       status: NoteStatus.DRAFT,
       authorId: user._id,
       publishedAt: null,
-      translations: {
-        // translatedBy: null means this is the original (written by the author, not a translator)
-        uk: {
-          title: dto.title,
-          description: dto.description,
-          body: dto.body,
-          translatedBy: null,
-        },
+      original: {
+        title: dto.title,
+        description: dto.description,
+        body: dto.body,
       },
+      translations: new Map(),
     });
   }
 
-  // Public endpoint — no auth required.
-  // Returns only PUBLISHED articles visible to site visitors.
+  // Public — returns only PUBLISHED articles.
   findPublished() {
     return this.notesRepository.find({ status: NoteStatus.PUBLISHED });
   }
 
-  // Public endpoint — returns a single published article by slug.
-  // Throws NotFoundException (404) if not found or not published.
+  // Public — returns a single published article by slug.
   findOnePublished(slug: string) {
-    return this.notesRepository.findOne({
-      slug,
-      status: NoteStatus.PUBLISHED,
-    });
+    return this.notesRepository.findOne({ slug, status: NoteStatus.PUBLISHED });
   }
 
   // Returns articles filtered by role:
-  //   ADMIN / SUPER_ADMIN — all articles regardless of status or author
-  //   AUTHOR              — only own articles (all statuses)
-  //   TRANSLATOR          — only articles in REVIEW (ready to translate)
+  //   ADMIN / SUPER_ADMIN — all articles
+  //   AUTHOR              — own articles (all statuses)
+  //   TRANSLATOR          — articles in REVIEW (ready to translate)
   findAll(user: UserDto) {
-    if (isAdmin(user)) {
-      return this.notesRepository.find({});
-    }
-    if (user.role === UserRole.AUTHOR) {
+    if (isAdmin(user)) return this.notesRepository.find({});
+    if (user.role === UserRole.AUTHOR)
       return this.notesRepository.find({ authorId: user._id });
-    }
-    if (user.role === UserRole.TRANSLATOR) {
+    if (user.role === UserRole.TRANSLATOR)
       return this.notesRepository.find({ status: NoteStatus.REVIEW });
-    }
     throw new ForbiddenException();
   }
 
   // Returns a single article by slug for the admin panel.
-  // Access rules are enforced at the controller level via RolesGuard.
   findOne(slug: string) {
     return this.notesRepository.findOne({ slug });
   }
 
+  // Updates the Ukrainian original content.
+  // Only the article's author or admin can edit the original.
+  async updateOriginal(slug: string, dto: UpdateOriginalDto, user: UserDto) {
+    const note = await this.notesRepository.findOne({ slug });
+
+    if (!isAdmin(user) && note.authorId !== user._id) {
+      throw new ForbiddenException('Only the author can edit the original');
+    }
+
+    return this.notesRepository.findandUpdate(
+      { slug },
+      {
+        $set: {
+          original: {
+            title: dto.title,
+            description: dto.description,
+            body: dto.body,
+          },
+        },
+      },
+    );
+  }
+
   // Adds or updates a translation for a specific locale.
-  //
-  // Who can edit which locale:
-  //   'uk' → only the article's own author (or ADMIN)
-  //   'en' → TRANSLATOR, the article's author, or ADMIN
-  //
-  // When an English translation is added, the slug is updated from en.title
-  // (better URLs for western audience: "army-needs-help" > "vijsko-potrebuie-dopomohy").
+  // TRANSLATOR and AUTHOR can upsert; status is reset to DRAFT on every save.
+  // Slug is updated from en.title for better western audience URLs.
   async upsertTranslation(
     slug: string,
     dto: UpsertTranslationDto,
@@ -178,27 +184,14 @@ export class NotesService {
     const note = await this.notesRepository.findOne({ slug });
 
     if (!isAdmin(user)) {
-      if (dto.locale === 'uk') {
-        if (note.authorId !== user._id) {
-          throw new ForbiddenException(
-            'Only the author can edit the Ukrainian translation',
-          );
-        }
-      } else {
-        const isTranslator = user.role === UserRole.TRANSLATOR;
-        const isAuthor = note.authorId === user._id;
-        if (!isTranslator && !isAuthor) {
-          throw new ForbiddenException(
-            'Only a translator or the author can add an English translation',
-          );
-        }
+      const isTranslator = user.role === UserRole.TRANSLATOR;
+      const isAuthor = note.authorId === user._id;
+      if (!isTranslator && !isAuthor) {
+        throw new ForbiddenException(
+          'Only a translator or the author can add a translation',
+        );
       }
     }
-
-    // translatedBy is null for original content (author editing their own locale).
-    // Set to user._id when a translator or admin adds the translation.
-    const translatedBy =
-      note.authorId === user._id && dto.locale === 'uk' ? null : user._id;
 
     const newSlug = dto.locale === 'en' ? sanitizeSlug(dto.title) : slug;
 
@@ -211,28 +204,123 @@ export class NotesService {
             title: dto.title,
             description: dto.description,
             body: dto.body,
-            translatedBy,
+            translatedBy: user._id,
+            status: TranslationStatus.DRAFT,
           },
         },
       },
     );
   }
 
-  // Moves an article through the editorial workflow.
-  // Only ADMIN / SUPER_ADMIN can change status.
-  //
-  // Rules:
-  //   DRAFT → REVIEW     — always allowed
-  //   REVIEW → PUBLISHED — requires an English translation to exist
-  //   * → DRAFT          — resets publishedAt (archiving)
-  async updateStatus(slug: string, dto: UpdateNoteStatusDto, user: UserDto) {
-    if (!isAdmin(user)) {
-      throw new ForbiddenException();
-    }
-
+  // Translator submits a translation for admin review.
+  // Changes translation status DRAFT → PENDING_REVIEW.
+  // Notifies all users subscribed to 'publication_ready' (admins).
+  async submitTranslationForReview(
+    slug: string,
+    locale: string,
+    user: UserDto,
+  ) {
     const note = await this.notesRepository.findOne({ slug });
 
-    if (dto.status === NoteStatus.PUBLISHED && !note.translations?.en) {
+    if (!isAdmin(user)) {
+      const isTranslator = user.role === UserRole.TRANSLATOR;
+      const isAuthor = note.authorId === user._id;
+      if (!isTranslator && !isAuthor) {
+        throw new ForbiddenException();
+      }
+    }
+
+    const translation = note.translations.get(locale);
+    if (!translation) {
+      throw new BadRequestException(`No ${locale} translation exists yet`);
+    }
+
+    const updated = await this.notesRepository.findandUpdate(
+      { slug },
+      {
+        $set: {
+          [`translations.${locale}.status`]: TranslationStatus.PENDING_REVIEW,
+        },
+      },
+    );
+
+    // Notify admins subscribed to 'publication_ready'
+    const emails = await firstValueFrom(
+      this.authService.send<string[]>('get_subscriber_emails', {
+        subscriptionType: 'publication_ready',
+      }),
+    );
+    if (emails.length > 0) {
+      this.notificationsService.emit('note.translation_submitted', {
+        slug,
+        locale,
+        title: note.original.title,
+        emails,
+      });
+    }
+
+    return updated;
+  }
+
+  // Admin approves a translation — PENDING_REVIEW → APPROVED.
+  // Notifies users subscribed to 'publication_ready'.
+  async approveTranslation(slug: string, locale: string, user: UserDto) {
+    if (!isAdmin(user)) throw new ForbiddenException();
+
+    const note = await this.notesRepository.findOne({ slug });
+    const translation = note.translations.get(locale);
+    if (!translation) {
+      throw new BadRequestException(`No ${locale} translation exists yet`);
+    }
+
+    const updated = await this.notesRepository.findandUpdate(
+      { slug },
+      {
+        $set: { [`translations.${locale}.status`]: TranslationStatus.APPROVED },
+      },
+    );
+
+    const emails = await firstValueFrom(
+      this.authService.send<string[]>('get_subscriber_emails', {
+        subscriptionType: 'publication_ready',
+      }),
+    );
+    if (emails.length > 0) {
+      this.notificationsService.emit('note.translation_approved', {
+        slug,
+        locale,
+        title: note.original.title,
+        emails,
+      });
+    }
+
+    return updated;
+  }
+
+  // Moves an article through the editorial workflow.
+  //
+  // AUTHOR can:   DRAFT → REVIEW (own articles only)
+  // ADMIN can:    any transition
+  //
+  // REVIEW → PUBLISHED requires an approved (or at least draft) EN translation.
+  // Admin can publish with AI draft (status: DRAFT) — forced publish without translator approval.
+  async updateStatus(slug: string, dto: UpdateNoteStatusDto, user: UserDto) {
+    const note = await this.notesRepository.findOne({ slug });
+
+    if (!isAdmin(user)) {
+      // Authors can only send their own draft to review
+      if (
+        dto.status !== NoteStatus.REVIEW ||
+        note.status !== NoteStatus.DRAFT
+      ) {
+        throw new ForbiddenException();
+      }
+      if (note.authorId !== user._id) {
+        throw new ForbiddenException();
+      }
+    }
+
+    if (dto.status === NoteStatus.PUBLISHED && !note.translations?.get('en')) {
       throw new BadRequestException(
         'Cannot publish without an English translation',
       );
@@ -245,24 +333,38 @@ export class NotesService {
           ? null
           : note.publishedAt;
 
-    return this.notesRepository.findandUpdate(
+    const updated = await this.notesRepository.findandUpdate(
       { slug },
       { $set: { status: dto.status, publishedAt } },
     );
+
+    // When sent to review — notify translators subscribed to 'translation_needed:en'
+    if (dto.status === NoteStatus.REVIEW) {
+      const emails = await firstValueFrom(
+        this.authService.send<string[]>('get_subscriber_emails', {
+          subscriptionType: 'translation_needed:en',
+        }),
+      );
+      if (emails.length > 0) {
+        this.notificationsService.emit('note.sent_to_review', {
+          slug,
+          title: note.original.title,
+          emails,
+        });
+      }
+    }
+
+    return updated;
   }
 
   // Deletes an article.
-  //
-  // ADMIN / SUPER_ADMIN — can delete anything.
-  // AUTHOR              — can only delete own articles that are still DRAFT
-  //                       (prevents silent removal of published content).
+  // ADMIN — can delete anything.
+  // AUTHOR — can only delete own DRAFT articles.
   async remove(slug: string, user: UserDto) {
     const note = await this.notesRepository.findOne({ slug });
 
     if (!isAdmin(user)) {
-      if (note.authorId !== user._id) {
-        throw new ForbiddenException();
-      }
+      if (note.authorId !== user._id) throw new ForbiddenException();
       if (note.status !== NoteStatus.DRAFT) {
         throw new ForbiddenException('Cannot delete a non-draft article');
       }

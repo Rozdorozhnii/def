@@ -1,11 +1,20 @@
 export type NoteStatus = 'draft' | 'review' | 'published';
-export type NoteLocale = 'uk' | 'en';
+export type TranslationStatus = 'draft' | 'pending_review' | 'approved';
 
+// The Ukrainian original — source of truth, no workflow status.
+export interface NoteOriginal {
+  title: string;
+  description: string;
+  body: string;
+}
+
+// A translated version with its own workflow status.
 export interface NoteTranslation {
   title: string;
   description: string;
   body: string;
   translatedBy: string | null;
+  status: TranslationStatus;
 }
 
 export interface Note {
@@ -14,5 +23,11 @@ export interface Note {
   status: NoteStatus;
   authorId: string;
   publishedAt: string | null;
-  translations: Partial<Record<NoteLocale, NoteTranslation>>;
+  original: NoteOriginal;
+  // Keyed by locale string — locales managed dynamically via settings
+  translations: Record<string, NoteTranslation>;
+}
+
+export interface SiteSettings {
+  supportedLocales: string[];
 }

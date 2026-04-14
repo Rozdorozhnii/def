@@ -8,29 +8,51 @@ export enum NoteStatus {
   PUBLISHED = 'published',
 }
 
-export type NoteLocale = 'uk' | 'en';
+export enum TranslationStatus {
+  DRAFT = 'draft',                   // AI-generated or work-in-progress
+  PENDING_REVIEW = 'pending_review', // submitted by translator, awaiting admin approval
+  APPROVED = 'approved',             // approved by admin, ready to publish
+}
 
+// The Ukrainian original — source of truth, no workflow status needed.
+@Schema({ _id: false })
+export class NoteOriginal {
+  @Prop({ required: true })
+  title: string;
+
+  @Prop({ required: true })
+  description: string; // 150-160 chars for SEO / social sharing
+
+  @Prop({ required: true })
+  body: string; // HTML from WYSIWYG editor
+}
+
+export const NoteOriginalSchema = SchemaFactory.createForClass(NoteOriginal);
+
+// A translated version of the article for a specific locale.
 @Schema({ _id: false })
 export class NoteTranslation {
   @Prop({ required: true })
   title: string;
 
   @Prop({ required: true })
-  description: string; // Short summary for SEO and social sharing (150-160 chars)
+  description: string;
 
   @Prop({ required: true })
-  body: string; // HTML from WYSIWYG editor
+  body: string;
 
   @Prop({ type: String, default: null })
-  translatedBy: string | null; // userId of translator, null for original (uk)
+  translatedBy: string | null; // userId of the translator (null if AI-generated without human edit)
+
+  @Prop({ type: String, enum: TranslationStatus, default: TranslationStatus.DRAFT })
+  status: TranslationStatus;
 }
 
-export const NoteTranslationSchema =
-  SchemaFactory.createForClass(NoteTranslation);
+export const NoteTranslationSchema = SchemaFactory.createForClass(NoteTranslation);
 
 @Schema({ versionKey: false })
 export class NoteDocument extends AbstractDocument {
-  // Generated from uk.title initially (transliterated), updated to en.title after translation
+  // Generated from original.title (transliterated), updated to en.title after translation
   @Prop({ required: true, unique: true })
   slug: string;
 
@@ -43,16 +65,14 @@ export class NoteDocument extends AbstractDocument {
   @Prop({ type: Date, default: null })
   publishedAt: Date | null;
 
-  @Prop({
-    type: {
-      uk: { type: NoteTranslationSchema, default: undefined },
-      en: { type: NoteTranslationSchema, default: undefined },
-    },
-    // _id: false prevents Mongoose from adding an _id to the translations wrapper object
-    _id: false,
-    default: {},
-  })
-  translations: Partial<Record<NoteLocale, NoteTranslation>>;
+  // Ukrainian original — the source all translators work from.
+  @Prop({ type: NoteOriginalSchema, default: undefined })
+  original: NoteOriginal;
+
+  // Translations keyed by locale string (e.g. 'en', 'de', 'pl').
+  // Locales are managed dynamically via SettingsService — no hardcoded enum.
+  @Prop({ type: Map, of: NoteTranslationSchema, default: {} })
+  translations: Map<string, NoteTranslation>;
 }
 
 export const NoteSchema = SchemaFactory.createForClass(NoteDocument);

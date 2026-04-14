@@ -59,6 +59,7 @@ export class UsersService implements OnApplicationBootstrap {
         pendingEmailToken: null,
         pendingEmailExpires: null,
         role: UserRole.SUPER_ADMIN,
+        subscriptions: [],
       });
 
       this.logger.log(`Bootstrap: super_admin created (${email})`);
@@ -99,6 +100,7 @@ export class UsersService implements OnApplicationBootstrap {
       pendingEmailToken: null,
       pendingEmailExpires: null,
       role: null,
+      subscriptions: [],
     });
 
     this.notificationsService.emit('verify_email', {
@@ -213,5 +215,14 @@ export class UsersService implements OnApplicationBootstrap {
       { _id: userId },
       { $set: { role } },
     );
+  }
+
+  // Returns emails of all users subscribed to the given subscription type.
+  // Used by notes service to fan-out workflow notifications.
+  async getSubscriberEmails(subscriptionType: string): Promise<string[]> {
+    const users = await this.usersRepository.find({
+      subscriptions: subscriptionType,
+    });
+    return users.map((u) => u.email);
   }
 }

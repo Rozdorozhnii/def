@@ -5,6 +5,9 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { NotesService } from './notes.service';
 import { NotesController } from './notes.controller';
+import { SettingsService } from './settings/settings.service';
+import { SettingsController } from './settings/settings.controller';
+import { SettingsRepository } from './settings/settings.repository';
 import {
   DatabaseModule,
   LoggerModule,
@@ -13,15 +16,14 @@ import {
 } from '@app/common';
 import { NotesRepository } from './notes.repository';
 import { NoteDocument, NoteSchema } from './models/note.schema';
+import { SettingsDocument, SettingsSchema } from './models/settings.schema';
 
 @Module({
   imports: [
     DatabaseModule,
     DatabaseModule.forFeature([
-      {
-        name: NoteDocument.name,
-        schema: NoteSchema,
-      },
+      { name: NoteDocument.name, schema: NoteSchema },
+      { name: SettingsDocument.name, schema: SettingsSchema },
     ]),
     LoggerModule,
     ConfigModule.forRoot({
@@ -60,7 +62,7 @@ import { NoteDocument, NoteSchema } from './models/note.schema';
       },
     ]),
   ],
-  controllers: [NotesController],
-  providers: [NotesService, NotesRepository],
+  controllers: [NotesController, SettingsController],
+  providers: [NotesService, NotesRepository, SettingsService, SettingsRepository],
 })
 export class NotesModule {}

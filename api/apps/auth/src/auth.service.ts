@@ -280,4 +280,12 @@ export class AuthService {
     // Revoke all active sessions — forces re-login on all devices after password change
     await this.sessionRepository.revokeAllByUser(user._id);
   }
+
+  // Returns emails of all users subscribed to the given subscription type.
+  async getSubscriberEmails(subscriptionType: string): Promise<string[]> {
+    const users = await this.usersRepository.find({
+      subscriptions: subscriptionType,
+    });
+    return users.map((u) => u.email);
+  }
 }

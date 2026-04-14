@@ -12,6 +12,7 @@ import {
 import { NotesService } from './notes.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import {
+  UpdateOriginalDto,
   UpsertTranslationDto,
   UpdateNoteStatusDto,
 } from './dto/update-note.dto';
@@ -24,9 +25,6 @@ import {
   UserRole,
 } from '@app/common';
 
-// Roles cascade: ADMIN / SUPER_ADMIN can do everything AUTHOR and TRANSLATOR can.
-// Fine-grained ownership checks (e.g. "own article only") are handled in the service.
-
 @Controller('notes')
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
@@ -37,19 +35,18 @@ export class NotesController {
   }
 
   // Public — no auth required. Returns only PUBLISHED articles.
-  // Must be declared before :slug to avoid "published" being captured as a slug param.
   @Get('published')
   findPublished() {
     return this.notesService.findPublished();
   }
 
-  // Public — returns a single published article by slug (for the public article page).
+  // Public — returns a single published article by slug.
   @Get('published/:slug')
   findOnePublished(@Param('slug') slug: string) {
     return this.notesService.findOnePublished(slug);
   }
 
-  // Returns articles filtered by the caller's role (see NotesService.findAll).
+  // Returns articles filtered by the caller's role.
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles(
     UserRole.AUTHOR,
@@ -63,7 +60,6 @@ export class NotesController {
   }
 
   // Creates a draft with the Ukrainian original.
-  // ADMIN can also create articles (acts as author).
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles(UserRole.AUTHOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Post()
@@ -71,8 +67,32 @@ export class NotesController {
     return this.notesService.create(dto, user);
   }
 
+  // Returns a single article by slug for the admin panel.
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(
+    UserRole.AUTHOR,
+    UserRole.TRANSLATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
+  @Get(':slug')
+  findOne(@Param('slug') slug: string) {
+    return this.notesService.findOne(slug);
+  }
+
+  // Updates the Ukrainian original content.
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(UserRole.AUTHOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Patch(':slug/original')
+  updateOriginal(
+    @Param('slug') slug: string,
+    @Body() dto: UpdateOriginalDto,
+    @CurrentUser() user: UserDto,
+  ) {
+    return this.notesService.updateOriginal(slug, dto, user);
+  }
+
   // Adds or updates a translation for a given locale.
-  // ADMIN bypasses ownership checks in the service.
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles(
     UserRole.AUTHOR,
@@ -89,10 +109,38 @@ export class NotesController {
     return this.notesService.upsertTranslation(slug, dto, user);
   }
 
-  // Moves an article through the workflow (DRAFT → REVIEW → PUBLISHED).
-  // Only admins can change status.
+  // Translator submits a translation for admin review (DRAFT → PENDING_REVIEW).
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(
+    UserRole.AUTHOR,
+    UserRole.TRANSLATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
+  @Patch(':slug/translations/:locale/submit')
+  submitTranslationForReview(
+    @Param('slug') slug: string,
+    @Param('locale') locale: string,
+    @CurrentUser() user: UserDto,
+  ) {
+    return this.notesService.submitTranslationForReview(slug, locale, user);
+  }
+
+  // Admin approves a translation (PENDING_REVIEW → APPROVED).
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Patch(':slug/translations/:locale/approve')
+  approveTranslation(
+    @Param('slug') slug: string,
+    @Param('locale') locale: string,
+    @CurrentUser() user: UserDto,
+  ) {
+    return this.notesService.approveTranslation(slug, locale, user);
+  }
+
+  // Moves an article through the workflow (DRAFT → REVIEW → PUBLISHED).
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(UserRole.AUTHOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Patch(':slug/status')
   updateStatus(
     @Param('slug') slug: string,
@@ -102,20 +150,7 @@ export class NotesController {
     return this.notesService.updateStatus(slug, dto, user);
   }
 
-  // Returns a single article by slug for the admin panel / editor views.
-  @UseGuards(AccessTokenGuard, RolesGuard)
-  @Roles(
-    UserRole.AUTHOR,
-    UserRole.TRANSLATOR,
-    UserRole.ADMIN,
-    UserRole.SUPER_ADMIN,
-  )
-  @Get(':slug')
-  findOne(@Param('slug') slug: string) {
-    return this.notesService.findOne(slug);
-  }
-
-  // Deletes an article. Service enforces: author can only delete own DRAFT articles.
+  // Deletes an article.
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles(UserRole.AUTHOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Delete(':slug')

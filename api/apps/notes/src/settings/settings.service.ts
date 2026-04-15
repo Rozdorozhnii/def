@@ -9,7 +9,9 @@ export class SettingsService {
   constructor(private readonly settingsRepository: SettingsRepository) {}
 
   async getSettings() {
-    const settings = await this.settingsRepository.findOneOrNull({ key: SETTINGS_KEY });
+    const settings = await this.settingsRepository.findOneOrNull({
+      key: SETTINGS_KEY,
+    });
     if (!settings) {
       // Return defaults if not yet initialized
       return { supportedLocales: ['en'] };
@@ -18,7 +20,9 @@ export class SettingsService {
   }
 
   async updateSupportedLocales(locales: string[]) {
-    const existing = await this.settingsRepository.findOneOrNull({ key: SETTINGS_KEY });
+    const existing = await this.settingsRepository.findOneOrNull({
+      key: SETTINGS_KEY,
+    });
 
     if (!existing) {
       return this.settingsRepository.create({

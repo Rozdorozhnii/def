@@ -60,6 +60,7 @@ export class UsersService implements OnApplicationBootstrap {
         pendingEmailExpires: null,
         role: UserRole.SUPER_ADMIN,
         subscriptions: [],
+        locales: [],
       });
 
       this.logger.log(`Bootstrap: super_admin created (${email})`);
@@ -101,6 +102,7 @@ export class UsersService implements OnApplicationBootstrap {
       pendingEmailExpires: null,
       role: null,
       subscriptions: [],
+      locales: [],
     });
 
     this.notificationsService.emit('verify_email', {
@@ -214,6 +216,15 @@ export class UsersService implements OnApplicationBootstrap {
     return this.usersRepository.findandUpdate(
       { _id: userId },
       { $set: { role } },
+    );
+  }
+
+  // Assigns translation locales to a user by id.
+  // Only SUPER_ADMIN can call this — enforced at the controller level.
+  async assignLocales(userId: string, locales: string[]) {
+    return this.usersRepository.findandUpdate(
+      { _id: userId },
+      { $set: { locales } },
     );
   }
 

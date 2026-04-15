@@ -99,4 +99,17 @@ export class UsersController {
   ) {
     await this.usersService.assignRole(id, role ?? null);
   }
+
+  // Assigns translation locales to a user. SUPER_ADMIN only.
+  // Pass locales: [] to remove all locale access.
+  @Patch(':id/locales')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  async assignLocales(
+    @Param('id') id: string,
+    @Body('locales') locales: string[],
+  ) {
+    await this.usersService.assignLocales(id, locales ?? []);
+  }
 }

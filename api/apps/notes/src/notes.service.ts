@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -14,7 +15,14 @@ import {
   UpdateNoteStatusDto,
 } from './dto/update-note.dto';
 import { NotesRepository } from './notes.repository';
-import { NoteStatus, TranslationStatus } from './models/note.schema';
+import { SettingsService } from './settings/settings.service';
+import { AiTranslationService } from './ai-translation/ai-translation.service';
+import {
+  NoteStatus,
+  NoteOriginal,
+  NoteTranslation,
+  TranslationStatus,
+} from './models/note.schema';
 import {
   AUTH_SERVICE,
   NOTIFICATIONS_SERVICE,
@@ -90,17 +98,47 @@ function isAdmin(user: UserDto): boolean {
 
 @Injectable()
 export class NotesService {
+  private readonly logger = new Logger(NotesService.name);
+
   constructor(
     private readonly notesRepository: NotesRepository,
+    private readonly settingsService: SettingsService,
+    private readonly aiTranslationService: AiTranslationService,
     @Inject(NOTIFICATIONS_SERVICE)
     private readonly notificationsService: ClientProxy,
     @Inject(AUTH_SERVICE)
     private readonly authService: ClientProxy,
   ) {}
 
+  // Fire-and-forget: delegates to AiTranslationService which saves result with AI_DRAFT status.
+  private runAiTranslation(
+    slug: string,
+    original: NoteOriginal,
+    targetLocale: string,
+  ): Promise<void> {
+    return this.aiTranslationService.translateNote(
+      slug,
+      original,
+      targetLocale,
+    );
+  }
+
   // Creates a new article draft with the Ukrainian original.
-  // Only AUTHOR (and ADMIN acting as author) can call this.
+  // AUTHOR role or any translator whose locales include 'uk' can create.
   async create(dto: CreateNoteDto, user: UserDto) {
+    if (!isAdmin(user)) {
+      const userLocales: string[] = Array.isArray(user.locales)
+        ? user.locales
+        : [];
+      const canWriteOriginal =
+        user.role === UserRole.AUTHOR || userLocales.includes('uk');
+      if (!canWriteOriginal) {
+        throw new ForbiddenException(
+          'Only authors or translators with Ukrainian locale can create articles',
+        );
+      }
+    }
+
     const slug = toSlug(dto.title);
 
     const existing = await this.notesRepository.findOneOrNull({ slug });
@@ -174,26 +212,29 @@ export class NotesService {
   }
 
   // Adds or updates a translation for a specific locale.
-  // TRANSLATOR and AUTHOR can upsert; status is reset to DRAFT on every save.
+  // TRANSLATOR can only edit locales assigned to them.
+  // Admin save is auto-APPROVED; translator save resets to DRAFT.
   // Slug is updated from en.title for better western audience URLs.
   async upsertTranslation(
     slug: string,
     dto: UpsertTranslationDto,
     user: UserDto,
   ) {
-    const note = await this.notesRepository.findOne({ slug });
-
     if (!isAdmin(user)) {
-      const isTranslator = user.role === UserRole.TRANSLATOR;
-      const isAuthor = note.authorId === user._id;
-      if (!isTranslator && !isAuthor) {
+      const userLocales: string[] = Array.isArray(user.locales)
+        ? user.locales
+        : [];
+      if (!userLocales.includes(dto.locale)) {
         throw new ForbiddenException(
-          'Only a translator or the author can add a translation',
+          'You do not have permission to translate this locale',
         );
       }
     }
 
     const newSlug = dto.locale === 'en' ? sanitizeSlug(dto.title) : slug;
+    const status = isAdmin(user)
+      ? TranslationStatus.APPROVED
+      : TranslationStatus.DRAFT;
 
     return this.notesRepository.findandUpdate(
       { slug },
@@ -205,7 +246,7 @@ export class NotesService {
             description: dto.description,
             body: dto.body,
             translatedBy: user._id,
-            status: TranslationStatus.DRAFT,
+            status,
           },
         },
       },
@@ -223,14 +264,22 @@ export class NotesService {
     const note = await this.notesRepository.findOne({ slug });
 
     if (!isAdmin(user)) {
-      const isTranslator = user.role === UserRole.TRANSLATOR;
-      const isAuthor = note.authorId === user._id;
-      if (!isTranslator && !isAuthor) {
-        throw new ForbiddenException();
+      const userLocales: string[] = Array.isArray(user.locales)
+        ? user.locales
+        : [];
+      if (!userLocales.includes(locale)) {
+        throw new ForbiddenException(
+          'You do not have permission to submit this locale for review',
+        );
       }
     }
 
-    const translation = note.translations.get(locale);
+    const translation = (
+      note.translations as unknown as Record<
+        string,
+        NoteTranslation | undefined
+      >
+    )[locale];
     if (!translation) {
       throw new BadRequestException(`No ${locale} translation exists yet`);
     }
@@ -268,7 +317,12 @@ export class NotesService {
     if (!isAdmin(user)) throw new ForbiddenException();
 
     const note = await this.notesRepository.findOne({ slug });
-    const translation = note.translations.get(locale);
+    const translation = (
+      note.translations as unknown as Record<
+        string,
+        NoteTranslation | undefined
+      >
+    )[locale];
     if (!translation) {
       throw new BadRequestException(`No ${locale} translation exists yet`);
     }
@@ -320,7 +374,10 @@ export class NotesService {
       }
     }
 
-    if (dto.status === NoteStatus.PUBLISHED && !note.translations?.get('en')) {
+    if (
+      dto.status === NoteStatus.PUBLISHED &&
+      !(note.translations as unknown as Record<string, unknown>)['en']
+    ) {
       throw new BadRequestException(
         'Cannot publish without an English translation',
       );
@@ -338,19 +395,44 @@ export class NotesService {
       { $set: { status: dto.status, publishedAt } },
     );
 
-    // When sent to review — notify translators subscribed to 'translation_needed:en'
+    // When sent to review — trigger AI translation + notify translators per locale
     if (dto.status === NoteStatus.REVIEW) {
-      const emails = await firstValueFrom(
-        this.authService.send<string[]>('get_subscriber_emails', {
-          subscriptionType: 'translation_needed:en',
-        }),
-      );
-      if (emails.length > 0) {
-        this.notificationsService.emit('note.sent_to_review', {
-          slug,
-          title: note.original.title,
-          emails,
-        });
+      const { supportedLocales } = await this.settingsService.getSettings();
+      const existingTranslations = note.translations as unknown as Record<
+        string,
+        unknown
+      >;
+
+      for (const locale of supportedLocales) {
+        if (locale === 'uk') continue;
+
+        // Fire-and-forget AI translation for locales without an existing translation
+        if (!existingTranslations[locale]) {
+          this.runAiTranslation(slug, note.original, locale).catch(
+            (err: unknown) =>
+              this.logger.error({
+                event: 'AI_TRANSLATION_FAILED',
+                slug,
+                locale,
+                err,
+              }),
+          );
+        }
+
+        // Notify translators subscribed to this locale
+        const emails = await firstValueFrom(
+          this.authService.send<string[]>('get_subscriber_emails', {
+            subscriptionType: `translation_needed:${locale}`,
+          }),
+        );
+        if (emails.length > 0) {
+          this.notificationsService.emit('note.sent_to_review', {
+            slug,
+            locale,
+            title: note.original.title,
+            emails,
+          });
+        }
       }
     }
 

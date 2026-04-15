@@ -8,9 +8,10 @@ interface Props {
   slug: string;
   currentStatus: NoteStatus;
   hasEnTranslation: boolean;
+  isAdmin: boolean;
 }
 
-export function StatusPanel({ slug, currentStatus, hasEnTranslation }: Props) {
+export function StatusPanel({ slug, currentStatus, hasEnTranslation, isAdmin }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,7 @@ export function StatusPanel({ slug, currentStatus, hasEnTranslation }: Props) {
       <h2 className="text-lg font-semibold mb-4">Workflow</h2>
 
       <div className="flex gap-3 flex-wrap">
+        {/* Author and admin: send draft to review */}
         {currentStatus === "draft" && (
           <button
             onClick={() => changeStatus("review")}
@@ -52,7 +54,8 @@ export function StatusPanel({ slug, currentStatus, hasEnTranslation }: Props) {
           </button>
         )}
 
-        {currentStatus === "review" && (
+        {/* Admin only: publish or send back to draft */}
+        {isAdmin && currentStatus === "review" && (
           <>
             <button
               onClick={() => changeStatus("published")}
@@ -72,7 +75,8 @@ export function StatusPanel({ slug, currentStatus, hasEnTranslation }: Props) {
           </>
         )}
 
-        {currentStatus === "published" && (
+        {/* Admin only: unpublish */}
+        {isAdmin && currentStatus === "published" && (
           <button
             onClick={() => changeStatus("draft")}
             disabled={loading}

@@ -6,4 +6,5 @@ export interface UserDto {
   firstName: string | null;
   lastName: string | null;
   role: UserRole | null;
+  locales: string[];
 }

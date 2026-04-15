@@ -5,6 +5,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { NotesService } from './notes.service';
 import { NotesController } from './notes.controller';
+import { AiTranslationService } from './ai-translation/ai-translation.service';
 import { SettingsService } from './settings/settings.service';
 import { SettingsController } from './settings/settings.controller';
 import { SettingsRepository } from './settings/settings.repository';
@@ -63,6 +64,6 @@ import { SettingsDocument, SettingsSchema } from './models/settings.schema';
     ]),
   ],
   controllers: [NotesController, SettingsController],
-  providers: [NotesService, NotesRepository, SettingsService, SettingsRepository],
+  providers: [NotesService, NotesRepository, SettingsService, SettingsRepository, AiTranslationService],
 })
 export class NotesModule {}

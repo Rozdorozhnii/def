@@ -89,6 +89,7 @@ export class AuthService {
       userId: user._id.toHexString(),
       sessionId: session._id.toHexString(),
       role: user.role ?? null,
+      locales: user.locales ?? [],
     };
 
     const accessToken = this.signAccessToken(payload);
@@ -152,6 +153,7 @@ export class AuthService {
       userId: decoded.userId,
       sessionId: newSession._id.toHexString(),
       role: decoded.role,
+      locales: decoded.locales ?? [],
     };
 
     const newAccess = this.signAccessToken(payload);
@@ -226,6 +228,7 @@ export class AuthService {
         _id: user._id.toHexString(),
         email: user.email,
         role: user.role ?? null,
+        locales: user.locales ?? [],
       };
     } catch {
       throw new UnauthorizedException();

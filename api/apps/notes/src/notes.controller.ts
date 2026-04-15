@@ -60,8 +60,14 @@ export class NotesController {
   }
 
   // Creates a draft with the Ukrainian original.
+  // TRANSLATOR allowed at guard level; service enforces locales.includes('uk').
   @UseGuards(AccessTokenGuard, RolesGuard)
-  @Roles(UserRole.AUTHOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(
+    UserRole.AUTHOR,
+    UserRole.TRANSLATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   @Post()
   create(@Body() dto: CreateNoteDto, @CurrentUser() user: UserDto) {
     return this.notesService.create(dto, user);
@@ -81,8 +87,14 @@ export class NotesController {
   }
 
   // Updates the Ukrainian original content.
+  // TRANSLATOR allowed at guard level; service enforces ownership.
   @UseGuards(AccessTokenGuard, RolesGuard)
-  @Roles(UserRole.AUTHOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(
+    UserRole.AUTHOR,
+    UserRole.TRANSLATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   @Patch(':slug/original')
   updateOriginal(
     @Param('slug') slug: string,
@@ -139,8 +151,14 @@ export class NotesController {
   }
 
   // Moves an article through the workflow (DRAFT → REVIEW → PUBLISHED).
+  // TRANSLATOR allowed at guard level for sending own articles to review.
   @UseGuards(AccessTokenGuard, RolesGuard)
-  @Roles(UserRole.AUTHOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(
+    UserRole.AUTHOR,
+    UserRole.TRANSLATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
   @Patch(':slug/status')
   updateStatus(
     @Param('slug') slug: string,

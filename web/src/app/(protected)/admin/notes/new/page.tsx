@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Editor } from "@/components/Editor";
 
 export default function NewNotePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [body, setBody] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -21,7 +23,7 @@ export default function NewNotePage() {
       body: JSON.stringify({
         title: form.get("title"),
         description: form.get("description"),
-        body: form.get("body"),
+        body,
       }),
     });
 
@@ -34,7 +36,6 @@ export default function NewNotePage() {
     }
 
     const note = await res.json();
-    // Redirect to edit page to add EN translation and manage status
     router.push(`/admin/notes/${note.slug}`);
   }
 
@@ -55,7 +56,7 @@ export default function NewNotePage() {
             name="title"
             type="text"
             required
-            className="border rounded px-3 py-2 text-sm"
+            className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none text-sm"
           />
         </div>
 
@@ -68,21 +69,13 @@ export default function NewNotePage() {
             name="description"
             type="text"
             required
-            className="border rounded px-3 py-2 text-sm"
+            className="border border-[#dfdbd8] rounded-lg px-2.5 py-[7px] outline-none text-sm"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="body" className="font-medium text-sm">
-            Body (UK) — HTML
-          </label>
-          <textarea
-            id="body"
-            name="body"
-            required
-            rows={10}
-            className="border rounded px-3 py-2 text-sm font-mono"
-          />
+          <label className="font-medium text-sm">Body (UK)</label>
+          <Editor value={body} onChange={setBody} placeholder="Write the article in Ukrainian..." />
         </div>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -91,7 +84,10 @@ export default function NewNotePage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50 text-sm"
+            className="cursor-pointer font-bold px-6 py-2 rounded text-sm text-white
+              border border-[#ff4102] bg-[#ff4102] shadow-md
+              hover:bg-white hover:text-[#ff4102] transition duration-300
+              disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Creating…" : "Create draft"}
           </button>

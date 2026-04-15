@@ -9,7 +9,8 @@ export enum NoteStatus {
 }
 
 export enum TranslationStatus {
-  DRAFT = 'draft',                   // AI-generated or work-in-progress
+  DRAFT = 'draft',                   // manually started, empty or work-in-progress
+  AI_DRAFT = 'ai_draft',             // machine-translated, awaiting human review
   PENDING_REVIEW = 'pending_review', // submitted by translator, awaiting admin approval
   APPROVED = 'approved',             // approved by admin, ready to publish
 }

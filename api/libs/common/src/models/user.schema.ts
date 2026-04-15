@@ -49,6 +49,11 @@ export class UserDocument extends AbstractDocument {
   // Only ADMIN / SUPER_ADMIN may subscribe to 'publication_ready'.
   @Prop({ type: [String], default: [] })
   subscriptions: string[];
+
+  // Locales the translator is allowed to work on (e.g. ['en', 'de']).
+  // Empty for AUTHOR, ADMIN, SUPER_ADMIN — they have unrestricted access.
+  @Prop({ type: [String], default: [] })
+  locales: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserDocument);

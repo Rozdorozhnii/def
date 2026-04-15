@@ -7,6 +7,7 @@ export class UserResponseDto {
   lastName: string | null;
   isEmailVerified: boolean;
   role: UserRole | null;
+  locales: string[];
 
   constructor(user: UserDocument) {
     this.id = user._id.toString();
@@ -15,5 +16,6 @@ export class UserResponseDto {
     this.lastName = user.lastName ?? null;
     this.isEmailVerified = user.isEmailVerified;
     this.role = user.role ?? null;
+    this.locales = user.locales ?? [];
   }
 }

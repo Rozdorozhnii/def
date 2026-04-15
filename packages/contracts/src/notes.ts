@@ -1,5 +1,5 @@
 export type NoteStatus = 'draft' | 'review' | 'published';
-export type TranslationStatus = 'draft' | 'pending_review' | 'approved';
+export type TranslationStatus = 'draft' | 'ai_draft' | 'pending_review' | 'approved';
 
 // The Ukrainian original — source of truth, no workflow status.
 export interface NoteOriginal {

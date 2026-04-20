@@ -82,8 +82,8 @@ export class NotesController {
     UserRole.SUPER_ADMIN,
   )
   @Get(':slug')
-  findOne(@Param('slug') slug: string) {
-    return this.notesService.findOne(slug);
+  findOne(@Param('slug') slug: string, @CurrentUser() user: UserDto) {
+    return this.notesService.findOne(slug, user);
   }
 
   // Updates the Ukrainian original content.
@@ -138,6 +138,18 @@ export class NotesController {
     return this.notesService.submitTranslationForReview(slug, locale, user);
   }
 
+  // Translator revokes a translation review (PENDING_REVIEW → DRAFT).
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(UserRole.TRANSLATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Patch(':slug/translations/:locale/revoke')
+  revokeTranslationReview(
+    @Param('slug') slug: string,
+    @Param('locale') locale: string,
+    @CurrentUser() user: UserDto,
+  ) {
+    return this.notesService.revokeTranslationReview(slug, locale, user);
+  }
+
   // Admin approves a translation (PENDING_REVIEW → APPROVED).
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -148,6 +160,18 @@ export class NotesController {
     @CurrentUser() user: UserDto,
   ) {
     return this.notesService.approveTranslation(slug, locale, user);
+  }
+
+  // Admin requests a correction on an approved translation (APPROVED → DRAFT).
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Patch(':slug/translations/:locale/request-correction')
+  requestTranslationCorrection(
+    @Param('slug') slug: string,
+    @Param('locale') locale: string,
+    @CurrentUser() user: UserDto,
+  ) {
+    return this.notesService.requestTranslationCorrection(slug, locale, user);
   }
 
   // Moves an article through the workflow (DRAFT → REVIEW → PUBLISHED).

@@ -175,17 +175,38 @@ export class NotesService {
   //   AUTHOR              — own articles (all statuses)
   //   TRANSLATOR          — articles in REVIEW (ready to translate)
   findAll(user: UserDto) {
-    if (isAdmin(user)) return this.notesRepository.find({});
+    if (user.role === UserRole.SUPER_ADMIN)
+      return this.notesRepository.find({});
+    if (user.role === UserRole.ADMIN)
+      return this.notesRepository.find({
+        status: { $in: [NoteStatus.REVIEW, NoteStatus.PUBLISHED] },
+      });
     if (user.role === UserRole.AUTHOR)
       return this.notesRepository.find({ authorId: user._id });
     if (user.role === UserRole.TRANSLATOR)
-      return this.notesRepository.find({ status: NoteStatus.REVIEW });
+      return this.notesRepository.find({
+        status: { $in: [NoteStatus.REVIEW, NoteStatus.PUBLISHED] },
+      });
     throw new ForbiddenException();
   }
 
   // Returns a single article by slug for the admin panel.
-  findOne(slug: string) {
-    return this.notesRepository.findOne({ slug });
+  async findOne(slug: string, user: UserDto) {
+    if (user.role === UserRole.SUPER_ADMIN)
+      return this.notesRepository.findOne({ slug });
+    if (user.role === UserRole.ADMIN)
+      return this.notesRepository.findOne({
+        slug,
+        status: { $in: [NoteStatus.REVIEW, NoteStatus.PUBLISHED] },
+      });
+    if (user.role === UserRole.AUTHOR)
+      return this.notesRepository.findOne({ slug, authorId: user._id });
+    if (user.role === UserRole.TRANSLATOR)
+      return this.notesRepository.findOne({
+        slug,
+        status: { $in: [NoteStatus.REVIEW, NoteStatus.PUBLISHED] },
+      });
+    throw new ForbiddenException();
   }
 
   // Updates the Ukrainian original content.
@@ -227,6 +248,22 @@ export class NotesService {
       if (!userLocales.includes(dto.locale)) {
         throw new ForbiddenException(
           'You do not have permission to translate this locale',
+        );
+      }
+    }
+
+    const note = await this.notesRepository.findOne({ slug });
+
+    if (!isAdmin(user)) {
+      const existing = (
+        note.translations as unknown as Record<
+          string,
+          NoteTranslation | undefined
+        >
+      )[dto.locale];
+      if (existing?.status === TranslationStatus.APPROVED) {
+        throw new ForbiddenException(
+          'This translation is approved. Ask an admin to request a correction.',
         );
       }
     }
@@ -311,6 +348,46 @@ export class NotesService {
     return updated;
   }
 
+  // Translator revokes a translation review — PENDING_REVIEW → DRAFT.
+  async revokeTranslationReview(slug: string, locale: string, user: UserDto) {
+    const note = await this.notesRepository.findOne({ slug });
+
+    if (!isAdmin(user)) {
+      const userLocales: string[] = Array.isArray(user.locales)
+        ? user.locales
+        : [];
+      if (!userLocales.includes(locale)) {
+        throw new ForbiddenException(
+          'You do not have permission to revoke this locale',
+        );
+      }
+    }
+
+    const translation = (
+      note.translations as unknown as Record<
+        string,
+        NoteTranslation | undefined
+      >
+    )[locale];
+    if (
+      !translation ||
+      translation.status !== TranslationStatus.PENDING_REVIEW
+    ) {
+      throw new BadRequestException(
+        `Translation for ${locale} is not pending review`,
+      );
+    }
+
+    return this.notesRepository.findandUpdate(
+      { slug },
+      {
+        $set: {
+          [`translations.${locale}.status`]: TranslationStatus.DRAFT,
+        },
+      },
+    );
+  }
+
   // Admin approves a translation — PENDING_REVIEW → APPROVED.
   // Notifies users subscribed to 'publication_ready'.
   async approveTranslation(slug: string, locale: string, user: UserDto) {
@@ -351,6 +428,60 @@ export class NotesService {
     return updated;
   }
 
+  // Admin requests a correction on an approved translation — APPROVED → DRAFT.
+  // Notifies the translator who submitted the translation.
+  async requestTranslationCorrection(
+    slug: string,
+    locale: string,
+    user: UserDto,
+  ) {
+    if (!isAdmin(user)) throw new ForbiddenException();
+
+    const note = await this.notesRepository.findOne({ slug });
+    const translation = (
+      note.translations as unknown as Record<
+        string,
+        NoteTranslation | undefined
+      >
+    )[locale];
+    if (!translation) {
+      throw new BadRequestException(`No ${locale} translation exists yet`);
+    }
+    if (translation.status !== TranslationStatus.APPROVED) {
+      throw new BadRequestException(
+        `Translation for ${locale} is not approved`,
+      );
+    }
+
+    const updated = await this.notesRepository.findandUpdate(
+      { slug },
+      {
+        $set: { [`translations.${locale}.status`]: TranslationStatus.DRAFT },
+      },
+    );
+
+    if (translation.translatedBy) {
+      const emails = await firstValueFrom(
+        this.authService.send<string[]>('get_user_emails_by_ids', {
+          ids: [translation.translatedBy],
+        }),
+      );
+      if (emails.length > 0) {
+        this.notificationsService.emit(
+          'note.translation_correction_requested',
+          {
+            slug,
+            locale,
+            title: note.original.title,
+            emails,
+          },
+        );
+      }
+    }
+
+    return updated;
+  }
+
   // Moves an article through the editorial workflow.
   //
   // AUTHOR can:   DRAFT → REVIEW (own articles only)
@@ -362,14 +493,15 @@ export class NotesService {
     const note = await this.notesRepository.findOne({ slug });
 
     if (!isAdmin(user)) {
-      // Authors can only send their own draft to review
-      if (
-        dto.status !== NoteStatus.REVIEW ||
-        note.status !== NoteStatus.DRAFT
-      ) {
+      if (note.authorId !== user._id) {
         throw new ForbiddenException();
       }
-      if (note.authorId !== user._id) {
+      // Author can send draft to review or revoke review back to draft
+      const allowed =
+        (note.status === NoteStatus.DRAFT &&
+          dto.status === NoteStatus.REVIEW) ||
+        (note.status === NoteStatus.REVIEW && dto.status === NoteStatus.DRAFT);
+      if (!allowed) {
         throw new ForbiddenException();
       }
     }

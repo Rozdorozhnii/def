@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -8,7 +9,6 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useRef } from "react";
 
 interface Props {
   value: string;
@@ -34,9 +34,10 @@ function ToolbarButton({
       title={title}
       onClick={onClick}
       className={`px-2 py-1 rounded text-sm border transition duration-150
-        ${active
-          ? "bg-[#ff4102] text-white border-[#ff4102]"
-          : "border-[#dfdbd8] hover:bg-gray-100"
+        ${
+          active
+            ? "bg-[#ff4102] text-white border-[#ff4102]"
+            : "border-[#dfdbd8] hover:bg-gray-100"
         }`}
     >
       {children}
@@ -53,7 +54,11 @@ export function Editor({ value, onChange, placeholder }: Props) {
     // StarterKit bundles: Bold, Italic, Strike, Heading, BulletList,
     // OrderedList, Blockquote, CodeBlock, HardBreak, History (undo/redo)
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Disabled because we configure these separately below
+        link: false,
+        underline: false,
+      }),
       Underline,
       TextAlign.configure({
         // Allow alignment on these node types
@@ -134,58 +139,120 @@ export function Editor({ value, onChange, placeholder }: Props) {
     <div className="border border-[#dfdbd8] rounded-lg overflow-hidden">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-1 p-2 border-b border-[#dfdbd8] bg-gray-50">
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          active={editor.isActive("bold")}
+          title="Bold"
+        >
           <b>B</b>
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          active={editor.isActive("italic")}
+          title="Italic"
+        >
           <i>I</i>
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          active={editor.isActive("underline")}
+          title="Underline"
+        >
           <u>U</u>
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          active={editor.isActive("strike")}
+          title="Strikethrough"
+        >
           <s>S</s>
         </ToolbarButton>
 
         <span className="w-px bg-[#dfdbd8] mx-1" />
 
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })} title="Heading 1">
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          active={editor.isActive("heading", { level: 1 })}
+          title="Heading 1"
+        >
           H1
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="Heading 2">
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          active={editor.isActive("heading", { level: 2 })}
+          title="Heading 2"
+        >
           H2
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="Heading 3">
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          }
+          active={editor.isActive("heading", { level: 3 })}
+          title="Heading 3"
+        >
           H3
         </ToolbarButton>
 
         <span className="w-px bg-[#dfdbd8] mx-1" />
 
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          active={editor.isActive("bulletList")}
+          title="Bullet list"
+        >
           • List
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Ordered list">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          active={editor.isActive("orderedList")}
+          title="Ordered list"
+        >
           1. List
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Blockquote">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          active={editor.isActive("blockquote")}
+          title="Blockquote"
+        >
           ❝
         </ToolbarButton>
 
         <span className="w-px bg-[#dfdbd8] mx-1" />
 
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Align left">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+          active={editor.isActive({ textAlign: "left" })}
+          title="Align left"
+        >
           ←
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+          active={editor.isActive({ textAlign: "center" })}
+          title="Align center"
+        >
           ↔
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Align right">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+          active={editor.isActive({ textAlign: "right" })}
+          title="Align right"
+        >
           →
         </ToolbarButton>
 
         <span className="w-px bg-[#dfdbd8] mx-1" />
 
-        <ToolbarButton onClick={handleSetLink} active={editor.isActive("link")} title="Link">
+        <ToolbarButton
+          onClick={handleSetLink}
+          active={editor.isActive("link")}
+          title="Link"
+        >
           🔗
         </ToolbarButton>
 
@@ -197,7 +264,10 @@ export function Editor({ value, onChange, placeholder }: Props) {
           className="hidden"
           onChange={handleImageUpload}
         />
-        <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Upload image">
+        <ToolbarButton
+          onClick={() => fileInputRef.current?.click()}
+          title="Upload image"
+        >
           🖼
         </ToolbarButton>
 
@@ -207,10 +277,16 @@ export function Editor({ value, onChange, placeholder }: Props) {
 
         <span className="w-px bg-[#dfdbd8] mx-1" />
 
-        <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().undo().run()}
+          title="Undo"
+        >
           ↩
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().redo().run()}
+          title="Redo"
+        >
           ↪
         </ToolbarButton>
       </div>

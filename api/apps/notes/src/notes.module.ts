@@ -63,7 +63,13 @@ import { SettingsDocument, SettingsSchema } from './models/settings.schema';
       },
     ]),
   ],
-  controllers: [NotesController, SettingsController],
-  providers: [NotesService, NotesRepository, SettingsService, SettingsRepository, AiTranslationService],
+  controllers: [SettingsController, NotesController],
+  providers: [
+    NotesService,
+    NotesRepository,
+    SettingsService,
+    SettingsRepository,
+    AiTranslationService,
+  ],
 })
 export class NotesModule {}

@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 
 interface Props {
   showManageRoles: boolean;
+  showSettings: boolean;
 }
 
-export function AdminNav({ showManageRoles }: Props) {
+export function AdminNav({ showManageRoles, showSettings }: Props) {
   const pathname = usePathname();
 
   function linkClass(href: string, exact = false) {
@@ -25,6 +26,11 @@ export function AdminNav({ showManageRoles }: Props) {
       {showManageRoles && (
         <Link href="/admin/users" className={linkClass("/admin/users")}>
           Manage roles
+        </Link>
+      )}
+      {showSettings && (
+        <Link href="/admin/settings" className={linkClass("/admin/settings")}>
+          Settings
         </Link>
       )}
       <Link href="/" className="text-sm text-gray-500 hover:text-black ml-auto">

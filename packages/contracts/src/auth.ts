@@ -15,4 +15,5 @@ export interface AuthUser {
   lastName: string | null;
   isEmailVerified: boolean;
   role: UserRole | null;
+  locales: string[];
 }

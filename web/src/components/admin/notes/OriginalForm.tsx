@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import type { NoteOriginal } from "@contracts/notes";
 import { Editor } from "@/components/Editor";
 
@@ -45,12 +46,16 @@ export function OriginalForm({ slug, initial }: Props) {
   }
 
   return (
-    <section>
-      <h2 className="text-lg font-semibold mb-4">Ukrainian (original)</h2>
+    <section className="flex flex-col gap-4">
+      <div className="flex items-center min-h-[36px]">
+        <h2 className="text-lg font-semibold">Ukrainian (original)</h2>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <label htmlFor="uk-title" className="font-medium text-sm">Title</label>
+          <label htmlFor="uk-title" className="font-medium text-sm">
+            Title
+          </label>
           <input
             id="uk-title"
             name="title"
@@ -62,7 +67,9 @@ export function OriginalForm({ slug, initial }: Props) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="uk-description" className="font-medium text-sm">Description</label>
+          <label htmlFor="uk-description" className="font-medium text-sm">
+            Description
+          </label>
           <input
             id="uk-description"
             name="description"
@@ -75,7 +82,11 @@ export function OriginalForm({ slug, initial }: Props) {
 
         <div className="flex flex-col gap-1">
           <label className="font-medium text-sm">Body</label>
-          <Editor value={body} onChange={setBody} placeholder="Write the article in Ukrainian..." />
+          <Editor
+            value={body}
+            onChange={setBody}
+            placeholder="Write the article in Ukrainian..."
+          />
         </div>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}

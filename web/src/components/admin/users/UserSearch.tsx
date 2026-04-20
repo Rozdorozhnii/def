@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import { USER_ROLES, ROLE_LABEL } from "@contracts/auth";
 import type { AuthUser, UserRole } from "@contracts/auth";
 
@@ -31,8 +32,14 @@ export function UserSearch() {
     );
     setSearching(false);
 
-    if (res.status === 404) { setSearchError("User not found"); return; }
-    if (!res.ok) { setSearchError("Something went wrong"); return; }
+    if (res.status === 404) {
+      setSearchError("User not found");
+      return;
+    }
+    if (!res.ok) {
+      setSearchError("Something went wrong");
+      return;
+    }
 
     const found: AuthUser = await res.json();
     setUser(found);
@@ -90,25 +97,35 @@ export function UserSearch() {
         <div className="border rounded p-4 flex flex-col gap-4">
           <div>
             <p className="text-sm font-medium">{user.email}</p>
-            <p className="text-xs text-gray-500 mt-1">Current role: {user.role ?? "none"}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Current role: {user.role ?? "none"}
+            </p>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="role" className="text-sm font-medium">New role</label>
+            <label htmlFor="role" className="text-sm font-medium">
+              New role
+            </label>
             <select
               id="role"
               value={selectedRole ?? ""}
-              onChange={(e) => setSelectedRole((e.target.value as UserRole) || null)}
+              onChange={(e) =>
+                setSelectedRole((e.target.value as UserRole) || null)
+              }
               className="border rounded px-3 py-2 text-sm"
             >
               {ROLES.map((r) => (
-                <option key={r.value ?? "null"} value={r.value ?? ""}>{r.label}</option>
+                <option key={r.value ?? "null"} value={r.value ?? ""}>
+                  {r.label}
+                </option>
               ))}
             </select>
           </div>
 
           {saveError && <p className="text-red-500 text-sm">{saveError}</p>}
-          {saveSuccess && <p className="text-green-600 text-sm">Role updated.</p>}
+          {saveSuccess && (
+            <p className="text-green-600 text-sm">Role updated.</p>
+          )}
 
           <button
             onClick={handleSave}

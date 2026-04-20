@@ -8,6 +8,11 @@ class UpdateLocalesDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsString({ each: true })
+  knownLocales: string[];
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
   supportedLocales: string[];
 }
 
@@ -21,11 +26,14 @@ export class SettingsController {
     return this.settingsService.getSettings();
   }
 
-  // Super admin only — manage supported translation locales
+  // Super admin only — manage known and supported translation locales
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   @Patch('locales')
   updateLocales(@Body() dto: UpdateLocalesDto) {
-    return this.settingsService.updateSupportedLocales(dto.supportedLocales);
+    return this.settingsService.updateLocales(
+      dto.knownLocales,
+      dto.supportedLocales,
+    );
   }
 }

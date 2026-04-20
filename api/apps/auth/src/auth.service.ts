@@ -291,4 +291,12 @@ export class AuthService {
     });
     return users.map((u) => u.email);
   }
+
+  // Returns emails for a list of user IDs.
+  async getUserEmailsByIds(ids: string[]): Promise<string[]> {
+    const users = await this.usersRepository.find({
+      _id: { $in: ids },
+    });
+    return users.map((u) => u.email);
+  }
 }

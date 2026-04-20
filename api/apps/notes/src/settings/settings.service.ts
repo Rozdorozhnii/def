@@ -13,13 +13,20 @@ export class SettingsService {
       key: SETTINGS_KEY,
     });
     if (!settings) {
-      // Return defaults if not yet initialized
-      return { supportedLocales: ['en'] };
+      return { knownLocales: ['en'], supportedLocales: ['en'] };
     }
-    return { supportedLocales: settings.supportedLocales };
+    return {
+      // Fall back to supportedLocales for documents created before knownLocales was added
+      knownLocales:
+        (settings.knownLocales as string[] | undefined) ??
+        settings.supportedLocales,
+      supportedLocales: settings.supportedLocales,
+    };
   }
 
-  async updateSupportedLocales(locales: string[]) {
+  // knownLocales — all locales ever added (persisted even when disabled).
+  // supportedLocales — active subset used for AI translation and notifications.
+  async updateLocales(knownLocales: string[], supportedLocales: string[]) {
     const existing = await this.settingsRepository.findOneOrNull({
       key: SETTINGS_KEY,
     });
@@ -27,13 +34,14 @@ export class SettingsService {
     if (!existing) {
       return this.settingsRepository.create({
         key: SETTINGS_KEY,
-        supportedLocales: locales,
+        knownLocales,
+        supportedLocales,
       });
     }
 
     return this.settingsRepository.findandUpdate(
       { key: SETTINGS_KEY },
-      { $set: { supportedLocales: locales } },
+      { $set: { knownLocales, supportedLocales } },
     );
   }
 }

@@ -29,5 +29,6 @@ export interface Note {
 }
 
 export interface SiteSettings {
-  supportedLocales: string[];
+  knownLocales: string[];      // all locales ever added (persisted even when disabled)
+  supportedLocales: string[];  // active subset — used for AI translation and notifications
 }

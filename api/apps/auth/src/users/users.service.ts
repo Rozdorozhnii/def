@@ -143,7 +143,11 @@ export class UsersService implements OnApplicationBootstrap {
     return this.usersRepository.findOne({ email });
   }
 
-  async updateProfile(userId: string, firstName: string | null, lastName: string | null) {
+  async updateProfile(
+    userId: string,
+    firstName: string | null,
+    lastName: string | null,
+  ) {
     return this.usersRepository.findandUpdate(
       { _id: userId },
       { $set: { firstName, lastName } },
@@ -196,7 +200,11 @@ export class UsersService implements OnApplicationBootstrap {
     );
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const user = await this.usersRepository.findById(userId);
     const isValid = await bcryptjs.compare(currentPassword, user.password);
 
@@ -233,6 +241,15 @@ export class UsersService implements OnApplicationBootstrap {
   async getSubscriberEmails(subscriptionType: string): Promise<string[]> {
     const users = await this.usersRepository.find({
       subscriptions: subscriptionType,
+    });
+    return users.map((u) => u.email);
+  }
+
+  // Returns emails for a list of user IDs.
+  // Used by notes service to notify a specific translator.
+  async getUserEmailsByIds(ids: string[]): Promise<string[]> {
+    const users = await this.usersRepository.find({
+      _id: { $in: ids },
     });
     return users.map((u) => u.email);
   }

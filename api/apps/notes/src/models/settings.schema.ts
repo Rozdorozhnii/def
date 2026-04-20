@@ -8,8 +8,11 @@ export class SettingsDocument extends AbstractDocument {
   @Prop({ required: true, unique: true })
   key: string;
 
-  // Locales available for translation (e.g. ['en', 'de', 'pl']).
-  // Managed by super_admin only.
+  // All locales ever added by super_admin (persisted even when disabled).
+  @Prop({ type: [String], default: ['en'] })
+  knownLocales: string[];
+
+  // Active subset of knownLocales — used for AI translation and translator notifications.
   @Prop({ type: [String], default: ['en'] })
   supportedLocales: string[];
 }

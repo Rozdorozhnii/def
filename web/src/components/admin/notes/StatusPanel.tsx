@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
 import type { NoteStatus } from "@contracts/notes";
 
 interface Props {
@@ -9,9 +11,16 @@ interface Props {
   currentStatus: NoteStatus;
   hasEnTranslation: boolean;
   isAdmin: boolean;
+  isAuthor: boolean;
 }
 
-export function StatusPanel({ slug, currentStatus, hasEnTranslation, isAdmin }: Props) {
+export function StatusPanel({
+  slug,
+  currentStatus,
+  hasEnTranslation,
+  isAdmin,
+  isAuthor,
+}: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,8 +52,8 @@ export function StatusPanel({ slug, currentStatus, hasEnTranslation, isAdmin }: 
       <h2 className="text-lg font-semibold mb-4">Workflow</h2>
 
       <div className="flex gap-3 flex-wrap">
-        {/* Author and admin: send draft to review */}
-        {currentStatus === "draft" && (
+        {/* Non-admin: send draft to review */}
+        {!isAdmin && currentStatus === "draft" && (
           <button
             onClick={() => changeStatus("review")}
             disabled={loading}
@@ -54,13 +63,40 @@ export function StatusPanel({ slug, currentStatus, hasEnTranslation, isAdmin }: 
           </button>
         )}
 
-        {/* Admin only: publish or send back to draft */}
+        {/* Author: revoke review back to draft */}
+        {isAuthor && currentStatus === "review" && (
+          <button
+            onClick={() => changeStatus("draft")}
+            disabled={loading}
+            className="border px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            Revoke review
+          </button>
+        )}
+
+        {/* Admin: publish directly from draft */}
+        {isAdmin && currentStatus === "draft" && (
+          <button
+            onClick={() => changeStatus("published")}
+            disabled={loading || !hasEnTranslation}
+            title={
+              !hasEnTranslation ? "English translation required" : undefined
+            }
+            className="bg-black text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-50"
+          >
+            Publish
+          </button>
+        )}
+
+        {/* Admin: publish or reject from review */}
         {isAdmin && currentStatus === "review" && (
           <>
             <button
               onClick={() => changeStatus("published")}
               disabled={loading || !hasEnTranslation}
-              title={!hasEnTranslation ? "English translation required" : undefined}
+              title={
+                !hasEnTranslation ? "English translation required" : undefined
+              }
               className="bg-black text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-50"
             >
               Publish
@@ -80,11 +116,17 @@ export function StatusPanel({ slug, currentStatus, hasEnTranslation, isAdmin }: 
           <button
             onClick={() => changeStatus("draft")}
             disabled={loading}
-            className="border px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+            className="border border-amber-500 text-amber-600 px-4 py-2 rounded text-sm hover:bg-amber-50 disabled:opacity-50"
           >
             Unpublish
           </button>
         )}
+        <Link
+          href="/admin"
+          className="px-4 py-2 rounded border text-sm hover:bg-gray-50"
+        >
+          ← Back to admin
+        </Link>
       </div>
 
       {!hasEnTranslation && currentStatus === "review" && (

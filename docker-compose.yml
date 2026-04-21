@@ -42,14 +42,19 @@ services:
           "CMD-SHELL",
           "wget --no-verbose --tries=1 --spider http://localhost:${NOTES_PORT}/notes/health || exit 1",
         ]
-      interval: 1m
+      interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
     volumes:
       - ./api:/usr/src/app
+      - /usr/src/app/node_modules
     depends_on:
       db:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      notifications:
         condition: service_healthy
 
   auth:
@@ -69,14 +74,17 @@ services:
           "CMD-SHELL",
           "wget --no-verbose --tries=1 --spider http://localhost:${AUTH_PORT}/auth/health || exit 1",
         ]
-      interval: 1m
+      interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
     volumes:
       - ./api:/usr/src/app
+      - /usr/src/app/node_modules
     depends_on:
       db:
+        condition: service_healthy
+      notifications:
         condition: service_healthy
 
   notifications:
@@ -96,12 +104,13 @@ services:
         - "node"
         - "-e"
         - "const c = require('net').createConnection(process.env.TCP_PORT, '0.0.0.0', () => { c.end(); process.exit(0); }); c.on('error', () => process.exit(1));"
-      interval: 1m
+      interval: 10s
       timeout: 5s
       retries: 3
       start_period: 10s
     volumes:
       - ./api:/usr/src/app
+      - /usr/src/app/node_modules
     depends_on:
       db:
         condition: service_healthy

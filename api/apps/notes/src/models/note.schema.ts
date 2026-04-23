@@ -74,6 +74,9 @@ export class NoteDocument extends AbstractDocument {
   // Locales are managed dynamically via SettingsService — no hardcoded enum.
   @Prop({ type: Map, of: NoteTranslationSchema, default: {} })
   translations: Map<string, NoteTranslation>;
+
+  @Prop({ default: false })
+  needsRepublish: boolean;
 }
 
 export const NoteSchema = SchemaFactory.createForClass(NoteDocument);

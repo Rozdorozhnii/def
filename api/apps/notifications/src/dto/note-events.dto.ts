@@ -1,6 +1,6 @@
 import { IsArray, IsString } from 'class-validator';
 
-export class NoteSentToReviewDto {
+export class NoteSentForTranslationDto {
   @IsString()
   slug: string;
 
@@ -28,6 +28,21 @@ export class NoteTranslationSubmittedDto {
 }
 
 export class NoteTranslationApprovedDto {
+  @IsString()
+  slug: string;
+
+  @IsString()
+  locale: string;
+
+  @IsString()
+  title: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  emails: string[];
+}
+
+export class NoteTranslationCorrectionRequestedDto {
   @IsString()
   slug: string;
 

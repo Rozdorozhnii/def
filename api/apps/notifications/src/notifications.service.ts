@@ -6,9 +6,10 @@ import {
   NotifyEmailDto,
   ResetPasswordNotifyDto,
   VerifyEmailDto,
-  NoteSentToReviewDto,
+  NoteSentForTranslationDto,
   NoteTranslationSubmittedDto,
   NoteTranslationApprovedDto,
+  NoteTranslationCorrectionRequestedDto,
 } from './dto';
 
 @Injectable()
@@ -29,6 +30,10 @@ export class NotificationsService {
           'GOOGLE_OAUTH_REFRESH_TOKEN',
         ),
       },
+      // Allow self-signed certs in dev (corporate proxies / VPN with SSL inspection)
+      ...(this.configService.get('NODE_ENV') !== 'production' && {
+        tls: { rejectUnauthorized: false },
+      }),
     });
   }
 
@@ -79,7 +84,7 @@ export class NotificationsService {
     });
   }
 
-  async noteSentToReview({ slug, title, emails }: NoteSentToReviewDto): Promise<void> {
+  async noteSentForTranslation({ slug, title, emails }: NoteSentForTranslationDto): Promise<void> {
     const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
     await Promise.all(
       emails.map((email) =>
@@ -179,6 +184,42 @@ export class NotificationsService {
             </html>
           `,
           text: `Translation approved: ${title} (${locale})\n\n${frontendUrl}/admin/notes/${slug}`,
+        }),
+      ),
+    );
+  }
+
+  async noteTranslationCorrectionRequested({ slug, title, locale, emails }: NoteTranslationCorrectionRequestedDto): Promise<void> {
+    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+    await Promise.all(
+      emails.map((email) =>
+        this.transporter.sendMail({
+          from: this.configService.getOrThrow('SMTP_USER'),
+          to: email,
+          subject: `Correction requested for translation: ${title} (${locale})`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8" /></head>
+            <body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px;">
+              <table width="100%" style="max-width:600px; margin: auto; background: white; padding: 32px; border-radius: 8px;">
+                <tr><td>
+                  <h2 style="margin-top: 0;">Correction requested</h2>
+                  <p>An admin has requested a correction for your <strong>${locale.toUpperCase()}</strong> translation of <strong>${title}</strong>.</p>
+                  <p>The translation has been returned to draft status for editing.</p>
+                  <div style="text-align: center; margin: 32px 0;">
+                    <a href="${frontendUrl}/admin/notes/${slug}"
+                      style="background-color: #ff4102; color: white; padding: 12px 24px;
+                             text-decoration: none; border-radius: 6px; font-weight: bold;">
+                      Edit translation
+                    </a>
+                  </div>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+          `,
+          text: `Correction requested: ${title} (${locale})\n\nAn admin has requested a correction. The translation has been returned to draft.\n\n${frontendUrl}/admin/notes/${slug}`,
         }),
       ),
     );

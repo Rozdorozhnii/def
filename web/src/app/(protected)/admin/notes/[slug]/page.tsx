@@ -62,6 +62,7 @@ export default async function EditNotePage({
       hasEnTranslation={!!note.translations.en}
       isAdmin={isAdmin}
       isAuthor={isAuthor}
+      needsRepublish={note.needsRepublish ?? false}
     />
   );
 

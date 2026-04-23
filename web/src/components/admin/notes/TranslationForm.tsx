@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import type { NoteTranslation } from "@contracts/notes";
@@ -15,16 +15,17 @@ interface Props {
 
 export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actioning, setActioning] = useState(false);
   const [body, setBody] = useState(initial?.body ?? "");
+  const [isDirty, setIsDirty] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
     setSaving(true);
 
     const form = new FormData(e.currentTarget);
@@ -49,12 +50,13 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
     }
 
     setSuccess(true);
+    setIsDirty(false);
 
     const updated = await res.json();
     if (updated.slug && updated.slug !== slug) {
       router.push(`/admin/notes/${updated.slug}`);
     } else {
-      router.refresh();
+      startTransition(() => router.refresh());
     }
   }
 
@@ -75,7 +77,7 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
       return;
     }
 
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function revokeReview() {
@@ -95,7 +97,7 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
       return;
     }
 
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function approve() {
@@ -115,7 +117,7 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
       return;
     }
 
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function requestCorrection() {
@@ -135,7 +137,7 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
       return;
     }
 
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   const status = initial?.status;
@@ -167,7 +169,7 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} onChange={() => { setIsDirty(true); setSuccess(false); }} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label htmlFor={`${locale}-title`} className="font-medium text-sm">
               Title
@@ -203,7 +205,7 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
             <label className="font-medium text-sm">Body</label>
             <Editor
               value={body}
-              onChange={setBody}
+              onChange={(val) => { setBody(val); setIsDirty(true); setSuccess(false); }}
               placeholder="Write the translation..."
             />
           </div>
@@ -227,14 +229,21 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
             {!isAdmin &&
               (status === "draft" || status === "ai_draft") &&
               initial && (
-                <button
-                  type="button"
-                  onClick={submitForReview}
-                  disabled={actioning}
-                  className="border px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {actioning ? "Submitting…" : "Submit for review"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={submitForReview}
+                    disabled={actioning || isDirty}
+                    className="border px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {actioning ? "Submitting…" : "Submit for review"}
+                  </button>
+                  {isDirty && (
+                    <span className="text-xs text-amber-600">
+                      Save your changes first
+                    </span>
+                  )}
+                </div>
               )}
 
             {/* Translator: revoke pending review back to draft */}
@@ -275,6 +284,7 @@ export function TranslationForm({ slug, locale, initial, isAdmin }: Props) {
                 {actioning ? "Requesting…" : "Request correction"}
               </button>
             )}
+
           </div>
         </form>
       )}

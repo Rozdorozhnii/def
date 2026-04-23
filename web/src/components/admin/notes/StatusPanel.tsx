@@ -12,6 +12,7 @@ interface Props {
   hasEnTranslation: boolean;
   isAdmin: boolean;
   isAuthor: boolean;
+  needsRepublish: boolean;
 }
 
 export function StatusPanel({
@@ -20,6 +21,7 @@ export function StatusPanel({
   hasEnTranslation,
   isAdmin,
   isAuthor,
+  needsRepublish,
 }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -111,15 +113,26 @@ export function StatusPanel({
           </>
         )}
 
-        {/* Admin only: unpublish */}
+        {/* Admin only: republish / unpublish */}
         {isAdmin && currentStatus === "published" && (
-          <button
-            onClick={() => changeStatus("draft")}
-            disabled={loading}
-            className="border border-amber-500 text-amber-600 px-4 py-2 rounded text-sm hover:bg-amber-50 disabled:opacity-50"
-          >
-            Unpublish
-          </button>
+          <>
+            {needsRepublish && (
+              <button
+                onClick={() => changeStatus("published")}
+                disabled={loading}
+                className="border border-blue-500 text-blue-600 px-4 py-2 rounded text-sm hover:bg-blue-50 disabled:opacity-50"
+              >
+                Republish
+              </button>
+            )}
+            <button
+              onClick={() => changeStatus("draft")}
+              disabled={loading}
+              className="border border-amber-500 text-amber-600 px-4 py-2 rounded text-sm hover:bg-amber-50 disabled:opacity-50"
+            >
+              Unpublish
+            </button>
+          </>
         )}
         <Link
           href="/admin"

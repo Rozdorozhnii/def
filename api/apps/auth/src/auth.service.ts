@@ -18,6 +18,7 @@ import {
   NOTIFICATIONS_SERVICE,
   sha256,
   UserDocument,
+  UserRole,
 } from '@app/common';
 import { TokenPayload } from './interfaces/token-payload';
 import { SessionRepository } from './session.repository';
@@ -282,6 +283,14 @@ export class AuthService {
 
     // Revoke all active sessions — forces re-login on all devices after password change
     await this.sessionRepository.revokeAllByUser(user._id);
+  }
+
+  async getTranslatorEmails(locale: string): Promise<string[]> {
+    const users = await this.usersRepository.find({
+      role: UserRole.TRANSLATOR,
+      locales: locale,
+    });
+    return users.map((u) => u.email);
   }
 
   // Returns emails of all users subscribed to the given subscription type.

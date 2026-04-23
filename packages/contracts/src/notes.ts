@@ -26,6 +26,7 @@ export interface Note {
   original: NoteOriginal;
   // Keyed by locale string — locales managed dynamically via settings
   translations: Record<string, NoteTranslation>;
+  needsRepublish: boolean;
 }
 
 export interface SiteSettings {

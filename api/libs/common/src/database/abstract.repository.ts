@@ -1,5 +1,5 @@
 import { FilterQuery, Model, Types, UpdateQuery } from 'mongoose';
-import { Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Logger, NotFoundException } from '@nestjs/common';
 
 import { AbstractDocument } from './abstract.schema';
 
@@ -11,10 +11,17 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
   async create(document: Omit<TDocument, '_id'>): Promise<TDocument> {
     const createdDocument = new this.model({
       ...document,
-      _id: new Types.ObjectId(), // Ensure _id is set to a new ObjectId
+      _id: new Types.ObjectId(),
     });
 
-    return (await createdDocument.save()).toJSON() as TDocument;
+    try {
+      return (await createdDocument.save()).toJSON() as TDocument;
+    } catch (err: unknown) {
+      if (typeof err === 'object' && err !== null && (err as { code?: number }).code === 11000) {
+        throw new ConflictException('Document with these unique fields already exists');
+      }
+      throw err;
+    }
   }
 
   async findOne(filterQuery: FilterQuery<TDocument>): Promise<TDocument> {

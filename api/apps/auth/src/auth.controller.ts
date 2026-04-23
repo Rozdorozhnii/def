@@ -96,6 +96,11 @@ export class AuthController {
     return this.authService.getSubscriberEmails(data.subscriptionType);
   }
 
+  @MessagePattern('get_translator_emails')
+  getTranslatorEmails(@Payload() data: { locale: string }) {
+    return this.authService.getTranslatorEmails(data.locale);
+  }
+
   @MessagePattern('get_user_emails_by_ids')
   getUserEmailsByIds(@Payload() data: { ids: string[] }) {
     return this.authService.getUserEmailsByIds(data.ids);

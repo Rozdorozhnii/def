@@ -236,15 +236,6 @@ export class UsersService implements OnApplicationBootstrap {
     );
   }
 
-  // Returns emails of all users subscribed to the given subscription type.
-  // Used by notes service to fan-out workflow notifications.
-  async getSubscriberEmails(subscriptionType: string): Promise<string[]> {
-    const users = await this.usersRepository.find({
-      subscriptions: subscriptionType,
-    });
-    return users.map((u) => u.email);
-  }
-
   // Returns emails for a list of user IDs.
   // Used by notes service to notify a specific translator.
   async getUserEmailsByIds(ids: string[]): Promise<string[]> {

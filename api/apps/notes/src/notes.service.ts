@@ -157,6 +157,7 @@ export class NotesService {
         body: dto.body,
       },
       translations: new Map(),
+      needsRepublish: false,
     });
   }
 
@@ -183,10 +184,12 @@ export class NotesService {
       });
     if (user.role === UserRole.AUTHOR)
       return this.notesRepository.find({ authorId: user._id });
-    if (user.role === UserRole.TRANSLATOR)
+    if (user.role === UserRole.TRANSLATOR) {
+      if (!user.locales?.length) return [];
       return this.notesRepository.find({
         status: { $in: [NoteStatus.REVIEW, NoteStatus.PUBLISHED] },
       });
+    }
     throw new ForbiddenException();
   }
 
@@ -201,11 +204,13 @@ export class NotesService {
       });
     if (user.role === UserRole.AUTHOR)
       return this.notesRepository.findOne({ slug, authorId: user._id });
-    if (user.role === UserRole.TRANSLATOR)
+    if (user.role === UserRole.TRANSLATOR) {
+      if (!user.locales?.length) throw new ForbiddenException();
       return this.notesRepository.findOne({
         slug,
         status: { $in: [NoteStatus.REVIEW, NoteStatus.PUBLISHED] },
       });
+    }
     throw new ForbiddenException();
   }
 
@@ -269,6 +274,18 @@ export class NotesService {
     }
 
     const newSlug = dto.locale === 'en' ? sanitizeSlug(dto.title) : slug;
+
+    if (newSlug !== slug) {
+      const slugConflict = await this.notesRepository.findOneOrNull({
+        slug: newSlug,
+      });
+      if (slugConflict) {
+        throw new BadRequestException(
+          'An article with this English title already exists',
+        );
+      }
+    }
+
     const status = isAdmin(user)
       ? TranslationStatus.APPROVED
       : TranslationStatus.DRAFT;
@@ -407,7 +424,10 @@ export class NotesService {
     const updated = await this.notesRepository.findandUpdate(
       { slug },
       {
-        $set: { [`translations.${locale}.status`]: TranslationStatus.APPROVED },
+        $set: {
+          [`translations.${locale}.status`]: TranslationStatus.APPROVED,
+          ...(note.status === NoteStatus.PUBLISHED && { needsRepublish: true }),
+        },
       },
     );
 
@@ -524,7 +544,13 @@ export class NotesService {
 
     const updated = await this.notesRepository.findandUpdate(
       { slug },
-      { $set: { status: dto.status, publishedAt } },
+      {
+        $set: {
+          status: dto.status,
+          publishedAt,
+          ...(dto.status === NoteStatus.PUBLISHED && { needsRepublish: false }),
+        },
+      },
     );
 
     // When sent to review — trigger AI translation + notify translators per locale
@@ -551,14 +577,11 @@ export class NotesService {
           );
         }
 
-        // Notify translators subscribed to this locale
         const emails = await firstValueFrom(
-          this.authService.send<string[]>('get_subscriber_emails', {
-            subscriptionType: `translation_needed:${locale}`,
-          }),
+          this.authService.send<string[]>('get_translator_emails', { locale }),
         );
         if (emails.length > 0) {
-          this.notificationsService.emit('note.sent_to_review', {
+          this.notificationsService.emit('note.sent_for_translation', {
             slug,
             locale,
             title: note.original.title,

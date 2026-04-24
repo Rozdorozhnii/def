@@ -59,7 +59,6 @@ export class UsersService implements OnApplicationBootstrap {
         pendingEmailToken: null,
         pendingEmailExpires: null,
         role: UserRole.SUPER_ADMIN,
-        subscriptions: [],
         locales: [],
       });
 
@@ -101,7 +100,6 @@ export class UsersService implements OnApplicationBootstrap {
       pendingEmailToken: null,
       pendingEmailExpires: null,
       role: null,
-      subscriptions: [],
       locales: [],
     });
 

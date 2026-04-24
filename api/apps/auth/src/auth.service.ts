@@ -293,10 +293,9 @@ export class AuthService {
     return users.map((u) => u.email);
   }
 
-  // Returns emails of all users subscribed to the given subscription type.
-  async getSubscriberEmails(subscriptionType: string): Promise<string[]> {
+  async getAdminEmails(): Promise<string[]> {
     const users = await this.usersRepository.find({
-      subscriptions: subscriptionType,
+      role: { $in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
     });
     return users.map((u) => u.email);
   }

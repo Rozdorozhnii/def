@@ -91,9 +91,9 @@ export class AuthController {
     return this.authService.authenticate(data.accessToken);
   }
 
-  @MessagePattern('get_subscriber_emails')
-  getSubscriberEmails(@Payload() data: { subscriptionType: string }) {
-    return this.authService.getSubscriberEmails(data.subscriptionType);
+  @MessagePattern('get_admin_emails')
+  getAdminEmails() {
+    return this.authService.getAdminEmails();
   }
 
   @MessagePattern('get_translator_emails')

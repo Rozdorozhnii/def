@@ -347,19 +347,19 @@ export class NotesService {
       },
     );
 
-    // Notify admins subscribed to 'publication_ready'
     const emails = await firstValueFrom(
-      this.authService.send<string[]>('get_subscriber_emails', {
-        subscriptionType: 'publication_ready',
-      }),
+      this.authService.send<string[]>('get_admin_emails', {}),
     );
     if (emails.length > 0) {
-      this.notificationsService.emit('note.translation_submitted', {
-        slug,
-        locale,
-        title: note.original.title,
-        emails,
-      });
+      const wasCorrection =
+        translation.status === TranslationStatus.DRAFT &&
+        translation.translatedBy !== null;
+      this.notificationsService.emit(
+        wasCorrection
+          ? 'note.translation_correction_submitted'
+          : 'note.translation_submitted',
+        { slug, locale, title: note.original.title, emails },
+      );
     }
 
     return updated;
@@ -430,20 +430,6 @@ export class NotesService {
         },
       },
     );
-
-    const emails = await firstValueFrom(
-      this.authService.send<string[]>('get_subscriber_emails', {
-        subscriptionType: 'publication_ready',
-      }),
-    );
-    if (emails.length > 0) {
-      this.notificationsService.emit('note.translation_approved', {
-        slug,
-        locale,
-        title: note.original.title,
-        emails,
-      });
-    }
 
     return updated;
   }
@@ -553,8 +539,19 @@ export class NotesService {
       },
     );
 
-    // When sent to review — trigger AI translation + notify translators per locale
+    // When sent to review — notify admins, trigger AI translation + notify translators per locale
     if (dto.status === NoteStatus.REVIEW) {
+      const adminEmails = await firstValueFrom(
+        this.authService.send<string[]>('get_admin_emails', {}),
+      );
+      if (adminEmails.length > 0) {
+        this.notificationsService.emit('note.sent_to_review', {
+          slug,
+          title: note.original.title,
+          emails: adminEmails,
+        });
+      }
+
       const { supportedLocales } = await this.settingsService.getSettings();
       const existingTranslations = note.translations as unknown as Record<
         string,

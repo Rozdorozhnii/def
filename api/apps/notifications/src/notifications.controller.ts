@@ -6,10 +6,12 @@ import {
   NotifyEmailDto,
   ResetPasswordNotifyDto,
   VerifyEmailDto,
+  NoteSentToReviewDto,
   NoteSentForTranslationDto,
   NoteTranslationSubmittedDto,
   NoteTranslationApprovedDto,
   NoteTranslationCorrectionRequestedDto,
+  NoteTranslationCorrectionSubmittedDto,
 } from './dto';
 
 @Controller()
@@ -46,10 +48,22 @@ export class NotificationsController {
     await this.notificationsService.noteTranslationApproved(data);
   }
 
+  @EventPattern('note.sent_to_review')
+  async noteSentToReview(@Payload() data: NoteSentToReviewDto) {
+    await this.notificationsService.noteSentToReview(data);
+  }
+
   @EventPattern('note.translation_correction_requested')
   async noteTranslationCorrectionRequested(
     @Payload() data: NoteTranslationCorrectionRequestedDto,
   ) {
     await this.notificationsService.noteTranslationCorrectionRequested(data);
+  }
+
+  @EventPattern('note.translation_correction_submitted')
+  async noteTranslationCorrectionSubmitted(
+    @Payload() data: NoteTranslationCorrectionSubmittedDto,
+  ) {
+    await this.notificationsService.noteTranslationCorrectionSubmitted(data);
   }
 }

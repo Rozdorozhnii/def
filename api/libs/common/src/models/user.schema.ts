@@ -44,12 +44,6 @@ export class UserDocument extends AbstractDocument {
   @Prop({ type: String, enum: UserRole, default: null })
   role: UserRole | null;
 
-  // Internal staff subscriptions for workflow notifications.
-  // Possible values: 'translation_needed:en', 'translation_needed:de', 'publication_ready'
-  // Only ADMIN / SUPER_ADMIN may subscribe to 'publication_ready'.
-  @Prop({ type: [String], default: [] })
-  subscriptions: string[];
-
   // Locales the translator is allowed to work on (e.g. ['en', 'de']).
   // Empty for AUTHOR, ADMIN, SUPER_ADMIN — they have unrestricted access.
   @Prop({ type: [String], default: [] })

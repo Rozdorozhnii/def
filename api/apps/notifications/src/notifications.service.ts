@@ -6,10 +6,12 @@ import {
   NotifyEmailDto,
   ResetPasswordNotifyDto,
   VerifyEmailDto,
+  NoteSentToReviewDto,
   NoteSentForTranslationDto,
   NoteTranslationSubmittedDto,
   NoteTranslationApprovedDto,
   NoteTranslationCorrectionRequestedDto,
+  NoteTranslationCorrectionSubmittedDto,
 } from './dto';
 
 @Injectable()
@@ -82,6 +84,41 @@ export class NotificationsService {
       `,
       text: `Reset your password\n\nClick the link below:\n\n${resetUrl}\n\nThis link expires in 15 minutes.\n\nIf you didn't request this, ignore this email.`,
     });
+  }
+
+  async noteSentToReview({ slug, title, emails }: NoteSentToReviewDto): Promise<void> {
+    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+    await Promise.all(
+      emails.map((email) =>
+        this.transporter.sendMail({
+          from: this.configService.getOrThrow('SMTP_USER'),
+          to: email,
+          subject: `Article submitted for review: ${title}`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8" /></head>
+            <body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px;">
+              <table width="100%" style="max-width:600px; margin: auto; background: white; padding: 32px; border-radius: 8px;">
+                <tr><td>
+                  <h2 style="margin-top: 0;">New article awaiting review</h2>
+                  <p>The article <strong>${title}</strong> has been submitted for your review.</p>
+                  <div style="text-align: center; margin: 32px 0;">
+                    <a href="${frontendUrl}/admin/notes/${slug}"
+                      style="background-color: #ff4102; color: white; padding: 12px 24px;
+                             text-decoration: none; border-radius: 6px; font-weight: bold;">
+                      Review article
+                    </a>
+                  </div>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+          `,
+          text: `New article awaiting review: ${title}\n\n${frontendUrl}/admin/notes/${slug}`,
+        }),
+      ),
+    );
   }
 
   async noteSentForTranslation({ slug, title, emails }: NoteSentForTranslationDto): Promise<void> {
@@ -220,6 +257,41 @@ export class NotificationsService {
             </html>
           `,
           text: `Correction requested: ${title} (${locale})\n\nAn admin has requested a correction. The translation has been returned to draft.\n\n${frontendUrl}/admin/notes/${slug}`,
+        }),
+      ),
+    );
+  }
+
+  async noteTranslationCorrectionSubmitted({ slug, title, locale, emails }: NoteTranslationCorrectionSubmittedDto): Promise<void> {
+    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+    await Promise.all(
+      emails.map((email) =>
+        this.transporter.sendMail({
+          from: this.configService.getOrThrow('SMTP_USER'),
+          to: email,
+          subject: `Correction submitted for review: ${title} (${locale})`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8" /></head>
+            <body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px;">
+              <table width="100%" style="max-width:600px; margin: auto; background: white; padding: 32px; border-radius: 8px;">
+                <tr><td>
+                  <h2 style="margin-top: 0;">Correction ready for approval</h2>
+                  <p>The corrected <strong>${locale.toUpperCase()}</strong> translation of <strong>${title}</strong> has been submitted and is awaiting your approval.</p>
+                  <div style="text-align: center; margin: 32px 0;">
+                    <a href="${frontendUrl}/admin/notes/${slug}"
+                      style="background-color: #ff4102; color: white; padding: 12px 24px;
+                             text-decoration: none; border-radius: 6px; font-weight: bold;">
+                      Review correction
+                    </a>
+                  </div>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+          `,
+          text: `Correction submitted: ${title} (${locale})\n\n${frontendUrl}/admin/notes/${slug}`,
         }),
       ),
     );

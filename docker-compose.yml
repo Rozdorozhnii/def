@@ -1,7 +1,6 @@
 services:
   web:
     container_name: web
-    image: web
     build:
       context: ./web
       dockerfile: Dockerfile.dev
@@ -23,6 +22,8 @@ services:
         condition: service_healthy
       notifications:
         condition: service_healthy
+      jars:
+        condition: service_healthy
       minio:
         condition: service_healthy
   notes:
@@ -40,7 +41,8 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:${NOTES_PORT}/notes/health || exit 1",
+          "wget --no-verbose --tries=1 --spider
+            http://localhost:${NOTES_PORT}/notes/health || exit 1",
         ]
       interval: 10s
       timeout: 3s
@@ -72,7 +74,8 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:${AUTH_PORT}/auth/health || exit 1",
+          "wget --no-verbose --tries=1 --spider
+            http://localhost:${AUTH_PORT}/auth/health || exit 1",
         ]
       interval: 10s
       timeout: 3s
@@ -103,7 +106,9 @@ services:
         - "CMD"
         - "node"
         - "-e"
-        - "const c = require('net').createConnection(process.env.TCP_PORT, '0.0.0.0', () => { c.end(); process.exit(0); }); c.on('error', () => process.exit(1));"
+        - "const c = require('net').createConnection(process.env.TCP_PORT,
+          '0.0.0.0', () => { c.end(); process.exit(0); }); c.on('error', () =>
+          process.exit(1));"
       interval: 10s
       timeout: 5s
       retries: 3
@@ -115,13 +120,44 @@ services:
       db:
         condition: service_healthy
 
+  jars:
+    build:
+      context: ./api
+      dockerfile: ./apps/jars/Dockerfile
+      target: development
+    container_name: api-jars
+    command: pnpm run start:dev jars
+    env_file:
+      - ./api/apps/jars/.env
+    ports:
+      - "${JARS_PORT}:${JARS_PORT}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider
+            http://localhost:${JARS_PORT}/jars/health || exit 1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ./api:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+
   minio:
     image: minio/minio
     container_name: minio
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Web UI → http://localhost:9001
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web UI → http://localhost:9001
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -129,7 +165,7 @@ services:
       - minio_data:/data
     restart: always
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -156,7 +192,7 @@ services:
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5

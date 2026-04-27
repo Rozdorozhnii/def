@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import type { Note } from "@contracts/notes";
 import { getBaseUrl } from "@/shared/server/getBaseUrl";
+import { DonationBlock } from "@/components/DonationBlock";
 
 export default async function NotePage({
   params,
@@ -58,6 +60,10 @@ export default async function NotePage({
         className="prose prose-neutral max-w-none"
         dangerouslySetInnerHTML={{ __html: translation?.body ?? "" }}
       />
+
+      <Suspense fallback={null}>
+        <DonationBlock />
+      </Suspense>
     </main>
   );
 }

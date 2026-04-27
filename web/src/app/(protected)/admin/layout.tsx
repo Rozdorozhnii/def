@@ -20,9 +20,10 @@ export default async function AdminLayout({
     <>
       <header className="border-b border-gray-200">
         <AdminNav
-        showManageRoles={user.role === "super_admin"}
-        showSettings={user.role === "super_admin"}
-      />
+          showManageRoles={user.role === "super_admin"}
+          showSettings={user.role === "super_admin"}
+          showJars={user.role === "super_admin"}
+        />
       </header>
       {children}
     </>
